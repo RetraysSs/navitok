@@ -1,0 +1,5 @@
+# Keep these files LF on every platform (also on Windows with core.autocrlf=true).
+*.py    text eol=lf
+*.jsonl text eol=lf
+*.json  text eol=lf
+*.md    text eol=lf

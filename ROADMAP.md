@@ -43,7 +43,7 @@
 |---|---|---|
 | Claude Code (latest) | Development and plugin testing | `claude --version` |
 | Git | Version control | `git --version` |
-| Python 3.10+ | Scripts and tests | `python3 --version` |
+| Python 3.10+ | Scripts and tests | `python3 --version` (`python` on Windows) |
 | GitHub CLI (optional) | Creating the repo, releases | `gh --version` |
 
 ### 2.2 Create the repository
@@ -94,7 +94,7 @@ claude --plugin-dir .
 After changes, run `/reload-plugins` in the open session. Tests:
 
 ```bash
-python3 -m unittest discover -s tests -v
+python3 -m unittest discover -s tests -v   # use python on Windows
 ```
 
 ### 2.6 End-user install (goes into the README at v1.0)
@@ -291,7 +291,7 @@ If a sprint spans more than one session, record each session separately.
 - [ ] `LICENSE` (MIT), stub `README.md`, `CHANGELOG.md`, `.gitignore`, `tests/` with one smoke test
 - [ ] `docs/dogfood/ledger.jsonl` (empty) and `docs/dogfood/REPORT.md` (table header); record this sprint (§6.1)
 
-**Accept:** `claude --plugin-dir .` lists the skill; `python3 -m unittest` passes; the first dogfood record exists.
+**Accept:** `claude --plugin-dir .` lists the skill; `python3 -m unittest` (`python` on Windows) passes; the first dogfood record exists.
 **Commit:** `chore: plugin skeleton and dogfood ledger (v0.0.1)`
 
 ---
@@ -343,7 +343,7 @@ If a sprint spans more than one session, record each session separately.
 - [ ] Fixed threshold: **90%**
 - [ ] Tests: boundary values; unknown task type → widest range
 
-**Accept:** `python3 scripts/estimate.py examples/tasks.json` prints a readable table.
+**Accept:** `python3 scripts/estimate.py examples/tasks.json` (`python` on Windows) prints a readable table.
 **Commit:** `feat(estimate): cold-start estimator (v0.3.0)`
 
 ---
@@ -433,7 +433,7 @@ If a sprint spans more than one session, record each session separately.
 - [ ] `scripts/watch.py` (stdlib `curses`): releases with status, current session and weekly bars, external usage, estimate vs actual for recent tasks, confidence, next reset time
 - [ ] Refreshes on an interval from local files only; `q` to quit; works in an 80×24 terminal
 - [ ] Plain-text fallback (`--once`) for terminals without curses support
-- [ ] Entry point documented: `python3 <plugin>/scripts/watch.py` (and a short alias suggestion)
+- [ ] Entry point documented: `python3 <plugin>/scripts/watch.py` (`python` on Windows) (and a short alias suggestion)
 
 **Accept:** the panel runs next to a Claude Code session for an hour without errors and without any model call.
 **Commit:** `feat(ui): live terminal panel (v0.9.0)`
