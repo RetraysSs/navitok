@@ -1,34 +1,37 @@
 # Handoff
 
-## Last sprint: v0.3 (Estimator v1, cold start), done
+## Last sprint: v0.4 (Plan generator), done
 
-- **Commit:** `b326561 feat(estimate): cold-start estimator (v0.3.0)`.
-- **Tests:** 59/59 pass (23 new).
-- **Acceptance:** `python scripts/estimate.py examples/tasks.json` prints a table: per-task range, confidence, notes, total `5.4-20.9`, and the 90% fit check.
+- **Commit:** `bf41b06 feat(plan): release plan generation (v0.4.0)`.
+- **Tests:** 76/76 pass (17 new).
+- **Acceptance:** `/navitok:plan` on a synthetic sample project (a recipe app README), once with `-p` and once interactively by the maintainer. It asked for plan and mode, then wrote `config.json`, `plan.json` and `.navitok/ROADMAP.md`. Five releases, the largest at 33.8% upper vs the 90% threshold.
 
-### What v0.3 built
+### What v0.4 built
 
-- `scripts/estimate.py`: `estimate_task`, `estimate`, `render`, CLI (`--plan`, `--json`). Exit 2 with a one-line error on bad input.
-  - Range = base(type, Pro, size S) x size (S 1 / M 2.5 / L 6) x files (first 3 free, +0.1 each, cap 2.0) x plan.
-  - Unknown type → widest range, confidence 10. Unknown or missing size → L, confidence at most 20. Known → 30.
-  - Totals are plain sums. `fits_one_session` = total high ≤ 90. API: no fit check (`null`).
-- `skills/navitok/references/heuristics.md` and `plans.md`. A test parses their tables and fails if they drift from the script's constants.
+- `commands/plan.md` → `/navitok:plan`. A thin command: it reads `${CLAUDE_PLUGIN_ROOT}/skills/navitok/SKILL.md` and follows its Plan flow with `$ARGUMENTS`.
+- `SKILL.md`: plan → mode → tasks (type/size/files) → releases (3–5 tasks, wrapup last) → write `plan.json` without numbers → `plan.py price` → report. **Claude never writes estimates; the script fills `est_pct`.**
+- `scripts/plan.py` with `config`, `price` (exit 0 fits / 1 `OVER:` / 2 malformed) and `render`. `plan.json`'s `plan` drives pricing. `config.json` only supplies `threshold_override`, which can only lower the threshold.
+- `.navitok/ROADMAP.md` is rendered from `references/roadmap-template.md`. `schedule.json` is not used yet (v0.5).
 
 ### Decisions to review
 
-- Plan multipliers (Max 5x = 0.2, Max 20x = 0.05) follow the plans' nominal names. They are a cold-start guess, labelled as such.
-- `refactor` has no seed data; its range sits between `test` and `feature`.
-- Cold-start confidence is capped at 30, since §10.1 gives 0 with no history.
+- `commands/` was kept as the roadmap says, although the docs prefer `skills/` for new plugins.
+- The release total is a sum across sessions and is labelled that way everywhere: the first `-p` run called it "one session's usage".
 
-### Lessons from v0.2 (keep in mind)
+### Known issue (v0.2 recorder, not fixed: out of scope)
+
+- When `/navitok:plan` creates `.navitok/` partway through a session, `SessionStart` was skipped (no folder yet), so the first snapshot comes from `Stop`, after the work. The record then shows **0 local tokens**. Seen in the sample project's `history.jsonl`. A fix fits v0.5 or v0.6: take the start snapshot from the transcript's first message instead.
+
+### Lessons (v0.2–v0.4) (keep in mind)
 
 - **Hook stdin is UTF-8.** Python on Windows decodes stdin with the ANSI code page (cp1254 here), so always read `sys.stdin.buffer`. Test with non-ASCII paths: this machine's home is `C:\Users\ÜNSAL`.
 - To check whether a hook ran, look at the `system` / `stop_hook_summary` record in the transcript. Silent successful hooks leave no other trace.
 - **The usage cache (`~/.claude.json`) is effectively frozen.** Neither `/usage` nor a new session refreshed it. The account-wide % in automatic records is unreliable until the statusline snapshot exists (v0.8). Manual `/usage` stays ground truth for the dogfood ledger.
+- CLI output must be UTF-8 (`sys.stdout.reconfigure`), or the Bash tool and tests get garbled text on Windows (v0.4).
 
-## Next sprint: v0.4 (Plan generator, `M`): not started, needs approval
+## Next sprint: v0.5 (Schedule engine + update tiers, `M`): not started, needs approval
 
-See ROADMAP §7 v0.4. It is size M: consider whether it needs a split before starting. It uses `estimate.py` to price tasks.
+See ROADMAP §7 v0.5 and §4.2, §10.7. Re-verify the `UserPromptSubmit` hook output fields against the hooks docs first (marked *unverified* in `docs/data-sources.md`).
 
 ## Notes
 
