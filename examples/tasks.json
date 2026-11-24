@@ -1,0 +1,11 @@
+{
+  "plan": "pro",
+  "tasks": [
+    {"id": "t1", "type": "docs", "size": "S", "files": 1},
+    {"id": "t2", "type": "feature", "size": "M", "files": 4},
+    {"id": "t3", "type": "test", "size": "S", "files": 2},
+    {"id": "t4", "type": "bugfix", "size": "S", "files": 1},
+    {"id": "t5", "type": "spike", "size": "S"},
+    {"id": "t6", "type": "wrapup", "size": "S", "files": 4}
+  ]
+}

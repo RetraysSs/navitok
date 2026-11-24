@@ -3,6 +3,18 @@
 All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.3.0] - 2026-11-24
+
+### Added
+
+- `scripts/estimate.py`, the cold-start estimator:
+  - Input: a task list (type, size, file count), bare or as `{plan, tasks}`.
+  - Output: a range per task, a total range, a 0-100 confidence, and a fit check against the fixed 90% threshold. Readable table by default, `--json` on request, `--plan` to override the file.
+  - Unknown type gets the widest range (confidence 10). Unknown size is priced as L. The API plan gets Pro-equivalent units and no fit check.
+- `skills/navitok/references/heuristics.md`: type x size cost table seeded from the dogfood ledger (v0.0-v0.2), labelled as one maintainer's data.
+- `skills/navitok/references/plans.md`: Pro / Max 5x / Max 20x / API profiles, percentages only, no token claims.
+- `examples/tasks.json` and tests for boundaries, unknown types and sizes, plans, the CLI, and doc/script sync.
+
 ## [0.2.0] - 2026-11-24
 
 ### Added
