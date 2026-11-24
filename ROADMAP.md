@@ -240,9 +240,11 @@ At the **start** of every sprint, Claude Code:
 3. Writes its own **estimate** for the sprint (per task, as a range), *before* starting work.
 
 At the **end** of every sprint (or when the stop rule triggers), Claude Code:
-1. Asks for `/usage` again.
+1. Asks for `/usage` again, **only after the last commit** (including the handoff commit), so the wrap-up cost is included. Only the small dogfood-record commit comes after this reading.
 2. Appends one record to `docs/dogfood/ledger.jsonl` (schema §10.5, with `"source": "manual"`).
 3. Adds a row to `docs/dogfood/REPORT.md`: sprint, estimate, actual, error, notes (e.g. "big test output", "re-read many files", "used claude.ai in parallel").
+
+`/usage` shows whole percents, so a small delta has a measurement error of **±1%**. Say so in the record's notes and in the REPORT row. Finer-grained numbers (statusline `rate_limits`, transcripts) replace this from v0.1 on, where available.
 
 If a sprint spans more than one session, record each session separately.
 
