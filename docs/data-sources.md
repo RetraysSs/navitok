@@ -52,3 +52,71 @@ Source: https://code.claude.com/docs/en/costs. Status: **documented**.
 - The plan breakdown is "computed from local session history on this machine".
 - No programmatic way to read the usage % is documented besides the statusline `rate_limits`.
 - Local transcripts are cleaned up after `cleanupPeriodDays` (default 30). The history window is therefore limited, so navitok must keep its own ledger.
+
+## Account-wide usage % sources (evaluated 2026-11-24)
+
+### (A) Statusline stdin `rate_limits`
+
+- **Reliability:** high. Documented, and the numbers come straight from Claude Code.
+- **Freshness:** high. The statusline refreshes after every assistant message and on `refreshInterval`.
+- **Precision:** decimal.
+- **Stability:** documented, so stable.
+- **Caveats:**
+  - It only reaches a script that the user has configured as `statusLine`, which needs approval. No statusline was configured on the dev machine.
+  - It is absent before the first API response and on API-key plans.
+  - Hooks cannot read it directly. The statusline script must persist a snapshot to a local file (e.g. `.navitok/usage_snapshot.json`) for hooks and scripts to read. This is planned for v0.8; v0.1 implements the reader side.
+- **Not yet observed live:** the field shape is taken from the docs only.
+
+### (B) `~/.claude.json` → `cachedUsageUtilization` — **UNSTABLE, undocumented**
+
+- **Observed shape:** `{fetchedAtMs, accountUuid, utilization: {five_hour: {utilization, resets_at, ...}, seven_day: {utilization, resets_at, ...}, ...}}`.
+  - `utilization` is an **integer percent**.
+  - `resets_at` is an ISO-8601 string with an offset. This differs from the statusline, which uses epoch seconds.
+  - There are many other keys with codenames. Ignore them.
+- **Reliability:** medium. The values matched the maintainer's `/usage` reading at the time of the fetch.
+- **Freshness:** low.
+  - When inspected, the cache was **18 minutes old** and showed 27% while `/usage` showed 30%. Claude Code did not refresh it during normal work in this session.
+  - **`/usage` does not refresh it.** The maintainer ran `/usage` at ~17:41, ~17:45 and ~17:50 UTC, and `fetchedAtMs` stayed at 17:25 UTC. Over that time the cache drifted to 26 minutes old and 4% behind.
+  - The refresh trigger is unknown. It may happen at Claude Code startup, but that is unverified. Treat the cache as a startup-time snapshot at best.
+- **Stability:** low. The key is undocumented and can change or disappear in any release.
+- **Rules:**
+  - Read it only through the adapter, and always report `fetchedAtMs` as the reading's age.
+  - Never print or store `accountUuid` or the rest of the file. It holds personal account data.
+
+### (C) Manual `/usage`
+
+- **Reliability:** high. It is ground truth.
+- **Freshness:** whenever the user runs it.
+- **Precision:** whole percents (±1).
+- **Stability:** stable. Needs a human in the loop.
+
+### Decision (v0.1)
+
+Primary + fallback order for the account-wide %:
+
+1. **(A) statusline snapshot**, if one exists and is younger than 10 minutes.
+2. **(B) usage cache**, only if `fetchedAtMs` is younger than 10 minutes.
+3. **(A) or (B), older than that:** returned flagged `stale`, together with the reading's age.
+4. **(C) manual**, which remains ground truth for the dogfood ledger until (A) has been observed live (v0.8).
+
+Every reading carries `source`, `age_s` and `precision` (`decimal` or `integer`), so the ledger can tell how much to trust it.
+
+## Local transcripts (inspected 2026-11-24, Claude Code 2.1.331) — **UNSTABLE, undocumented format**
+
+Source: `~/.claude/projects/<project-slug>/<session_id>.jsonl`. Hooks and the statusline receive the path as `transcript_path`.
+
+Only field names and token counts were inspected. Transcripts hold prompt text, code and account IDs. **Never commit them, and never copy them into fixtures.**
+
+- **Format:** one JSON object per line, with many record types (`user`, `assistant`, `system`, `attachment`, `api-request`, ...). Only `type == "assistant"` records carry usage.
+- **Fields on an assistant record:**
+  - `timestamp`, `sessionId`, `isSidechain`, `effort`, `requestId`
+  - `message.id` and `message.model`
+  - `message.usage`: `input_tokens`, `output_tokens`, `cache_read_input_tokens`, `cache_creation_input_tokens`, plus a nested `cache_creation`, `server_tool_use`, `service_tier`, ...
+- **Duplicates:** one API response is written as **several assistant records** (one per content block) that share `message.id` and carry **identical** `usage`. In this session, 71 records held 37 unique ids. **Totals must deduplicate by `message.id`**, or they are inflated ~2×.
+- **Subagents:** subagent transcripts live in `<session_id>/subagents/agent-<id>.jsonl` (with a `.meta.json`), not in the main file. A session total must include them.
+  - They can run a **different model**. In this session the web-fetch subagents ran on a lighter model than the main session.
+  - Per-model totals are therefore needed (v1.2).
+- **Finer-grained cost:** every assistant record has a `timestamp`, so tokens can be summed for any time window, e.g. between two `/usage` readings or per task. This is the finer-grained local signal for the dogfood ledger.
+  - It is **local only**, so it excludes claude.ai and other machines.
+  - Converting tokens to session % needs calibration (ROADMAP §10.3).
+- Old transcripts are deleted after `cleanupPeriodDays` (default 30).
