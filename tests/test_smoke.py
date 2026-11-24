@@ -67,7 +67,7 @@ class DogfoodLedgerTest(unittest.TestCase):
         for n, line in enumerate(ledger.read_text(encoding="utf-8").splitlines(), 1):
             if line.strip():
                 record = json.loads(line)
-                self.assertEqual(record["schema"], 1, f"line {n}")
+                self.assertIn(record["schema"], (1, 2), f"line {n}")
 
 
 if __name__ == "__main__":

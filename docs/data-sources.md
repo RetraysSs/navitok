@@ -29,6 +29,33 @@ Source: https://code.claude.com/docs/en/hooks. Status: **documented**. The page 
 - `PreToolUse` can rewrite tool arguments via `hookSpecificOutput.updatedInput`. `PostToolUse` may replace output via `updatedToolOutput` *(unverified)*. Either is the mechanism for v0.12 trimming.
 - **No hook input carries rate-limit / usage %.** `SessionStart` on resume reportedly carries `context_tokens` *(unverified)*.
 
+### Hooks re-verification for v0.2 (checked 2026-11-24, verbatim sections)
+
+Source: https://code.claude.com/docs/en/hooks, the SessionStart, Stop, SessionEnd, exit-code and plugin sections, read verbatim. This supersedes the *(unverified)* marks above for these items.
+
+- **Common input:** `session_id`, `prompt_id`, `transcript_path`, `cwd`, `scratchpad_dir`, `permission_mode`, `effort` (an object with `level`), `hook_event_name`. There is no `model` in the common fields.
+- **`SessionStart`:**
+  - Matchers / `source` values: `startup`, `resume`, `clear`, `compact`, `fork`. Input may include `model`, and on resume/fork also `context_tokens`.
+  - Plain stdout **is added to Claude's context**. So navitok's SessionStart recorder must print nothing.
+- **`Stop`:** "Runs when the main Claude Code agent has finished responding." It runs **after every response**, not once per session. It does not run on user interrupt (API errors fire `StopFailure`). Omitting `decision` lets Claude stop normally.
+- **`SessionEnd`:**
+  - Runs when the session ends. `reason` is one of `clear`, `resume`, `logout`, `prompt_input_exit`, `other`.
+  - It has no decision control, and its output is discarded.
+  - **The default budget is 1.5 s, and plugin-provided `timeout`s do not raise it** (user env `CLAUDE_CODE_SESSIONEND_HOOKS_TIMEOUT_MS` can). The work done here must therefore be tiny.
+- **Exit codes:**
+  - 0: success.
+  - 2: blocking. For Stop it continues the conversation, so navitok must never return 2 from Stop.
+  - Anything else: non-blocking error with a visible notice.
+  - Claude never sees stderr from a hook that exits 0.
+- **Plugin `hooks/hooks.json` shape:** `{"description": ..., "hooks": {"<Event>": [{"matcher": ..., "hooks": [{"type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/...", "timeout": N}]}]}}`.
+  - `${CLAUDE_PLUGIN_ROOT}` is the plugin's install directory.
+  - `${CLAUDE_PLUGIN_DATA}` is "the plugin's persistent data directory". Its on-disk location is not verified.
+- **Windows:** shell-form commands run in **Git Bash**, or in PowerShell if Git Bash is missing. Exec form (`command` + `args`) skips the shell and needs a real `.exe`. navitok uses a POSIX `hooks/run.sh` wrapper that picks a working `python3`/`python`.
+- **No hook input carries rate-limit / usage %** (confirmed).
+- **Observed live (v0.2 acceptance run, Windows, Claude Code 2.1.331):**
+  - Hook stdin is **UTF-8**. Python on Windows decodes `sys.stdin` with the ANSI code page (cp1254 on the dev machine), which garbled the non-ASCII `cwd`, so the hook silently found no `.navitok/`. **Hooks must read `sys.stdin.buffer` and decode it as UTF-8.**
+  - Successful silent hooks leave no `attachment` in the transcript. Stop hooks do appear in a `system` / `stop_hook_summary` record (`hookInfos[].command`, `durationMs`, `hookErrors`), which is useful for checking that a hook ran.
+
 ## Statusline (checked 2026-11-24)
 
 Source: https://code.claude.com/docs/en/statusline. Status: **documented**.
@@ -77,7 +104,8 @@ Source: https://code.claude.com/docs/en/costs. Status: **documented**.
 - **Freshness:** low.
   - When inspected, the cache was **18 minutes old** and showed 27% while `/usage` showed 30%. Claude Code did not refresh it during normal work in this session.
   - **`/usage` does not refresh it.** The maintainer ran `/usage` at ~17:41, ~17:45 and ~17:50 UTC, and `fetchedAtMs` stayed at 17:25 UTC. Over that time the cache drifted to 26 minutes old and 4% behind.
-  - The refresh trigger is unknown. It may happen at Claude Code startup, but that is unverified. Treat the cache as a startup-time snapshot at best.
+  - **Starting a new Claude Code session does not refresh it either.** In the v0.2 acceptance run, a fresh `claude --plugin-dir .` session at 18:21 UTC still read `fetchedAtMs` = 17:25 UTC (56 minutes old).
+  - The refresh trigger is unknown. Treat the cache as **unreliable for deltas**. Until the statusline snapshot (A) exists (v0.8), the account-wide % in automatic records is usually stale. Records flag this in `notes`, and manual `/usage` stays ground truth.
 - **Stability:** low. The key is undocumented and can change or disappear in any release.
 - **Rules:**
   - Read it only through the adapter, and always report `fetchedAtMs` as the reading's age.
