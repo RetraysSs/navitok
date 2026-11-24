@@ -14,3 +14,7 @@ Thumbs.db
 
 # Local Claude Code settings
 .claude/settings.local.json
+
+# Maintainer-only Claude Code instructions (kept local)
+CLAUDE.md
+CLAUDE.local.md
