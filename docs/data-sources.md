@@ -16,6 +16,15 @@ Source: https://code.claude.com/docs/en/plugins-reference, https://code.claude.c
 - `.claude-plugin/marketplace.json` requires `name`, `owner` (`{name}`) and `plugins[]`. Each plugin entry requires `name` and `source`. `"source": "./"` points to the repo root.
 - Validation: `claude plugin validate <path>` (add `--strict` to turn warnings into failures).
 
+### Commands and skill content (checked 2026-11-24, for v0.4)
+
+Source: https://code.claude.com/docs/en/plugins-reference and https://code.claude.com/docs/en/slash-commands, partly verbatim.
+
+- `commands/` (flat Markdown command files) is still supported. Verbatim: "Prefer `skills/` for new plugins." Custom commands "have been merged into skills", and existing command files keep working.
+- `${CLAUDE_PLUGIN_ROOT}` is substituted "Anywhere in the Markdown body" of skill, command and agent content (verbatim). These variables are **not** in the environment of Bash tool commands, so the body must spell the path out.
+- `$ARGUMENTS` holds the command arguments *(from a summary, confirmed live)*. Frontmatter `description` and `argument-hint` are supported *(summary)*.
+- **Observed live (v0.4 acceptance, Claude Code 2.1.331):** `commands/plan.md` in plugin `navitok` runs as `/navitok:plan`, both with `-p` and interactively. The `${CLAUDE_PLUGIN_ROOT}` path was substituted, and the agent ran `plan.py` through it.
+
 ## Hooks (checked 2026-11-24, Claude Code 2.1.331)
 
 Source: https://code.claude.com/docs/en/hooks. Status: **documented**. The page is ~290k characters and only partly read verbatim. Items marked *(unverified)* came from a summary and **must be re-checked against the page before they are used** (v0.2, v0.5, v0.12).

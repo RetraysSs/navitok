@@ -186,6 +186,9 @@ def render(result):
 
 
 def main(argv=None):
+    for stream in (sys.stdout, sys.stderr):  # Windows defaults to the ANSI code page
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8")
     ap = argparse.ArgumentParser(description="navitok cold-start estimator")
     ap.add_argument("tasks", help="JSON file: task list or {plan, tasks}")
     ap.add_argument("--plan", help="pro | max5x | max20x | api (overrides the file)")

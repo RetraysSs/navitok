@@ -3,6 +3,23 @@
 All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.4.0] - 2026-11-24
+
+### Added
+
+- `/navitok:plan` (`commands/plan.md`) and the skill's plan flow (`skills/navitok/SKILL.md`): ask for plan and mode, break the project into typed and sized tasks, group them into releases that each end in a commit, and let the script price them. Claude never writes cost numbers.
+- `scripts/plan.py`:
+  - `config` writes `.navitok/config.json` (§10.8 defaults).
+  - `price` validates `.navitok/plan.json` (§10.6), fills `est_pct` on every task and release with `estimate.py`, and renders `.navitok/ROADMAP.md`. It exits 1 with an `OVER:` line for each release whose upper estimate is above the threshold, and renders nothing then.
+  - `render` re-renders the roadmap only.
+  - `threshold_override` can only lower the 90% cold-start threshold.
+- `skills/navitok/references/roadmap-template.md` (stdlib `string.Template`).
+- Tests for validation, pricing, the threshold boundary, rendering, the CLI and the plugin files.
+
+### Fixed
+
+- `estimate.py` and `plan.py` write UTF-8 to stdout and stderr. On Windows the ANSI code page garbled non-ASCII paths and the en dash.
+
 ## [0.3.0] - 2026-11-24
 
 ### Added
