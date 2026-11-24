@@ -1,23 +1,42 @@
 # Handoff
 
-## Last sprint: v0.0 (Skeleton + dogfood ledger), done
+## Last sprint: v0.1 (Data source spike), done
 
-- Commit: `de801c3 chore: plugin skeleton and dogfood ledger (v0.0.1)`
-- Tests: 4/4 pass (`python -m unittest discover -s tests -v`)
-- `claude plugin validate .` passes with warnings:
-  - no icon (out of scope),
-  - no marketplace install line in the README (planned for v1.0, §2.6),
-  - `CLAUDE.md` at the root is not loaded as plugin context (expected: it holds the dev rules).
-- Dogfood record v0.0 is in `docs/dogfood/ledger.jsonl` and `REPORT.md`. Estimate 8–17%, actual ~1%.
+- **Commits:**
+  - `52934bc docs(data): record hooks, statusline and costs findings; amend dogfood protocol`
+  - `827c97f feat(data): usage source spike and adapters (v0.1.0)`
+- **Tests:** 17/17 pass (`python -m unittest discover -s tests -v`). `claude plugin validate .` passes with the same warnings as v0.0.
+- **Dogfood record:** v0.1 is in `docs/dogfood/ledger.jsonl` and `REPORT.md`. It was measured in two parts because the 5-hour window reset at 17:50 UTC mid-sprint.
 
-## Next sprint: v0.1 (Data source spike), waiting for maintainer approval
+### What v0.1 established (details in `docs/data-sources.md`)
 
-Start with the §6.1 protocol: `/usage` session % and weekly %, claude.ai or other-machine use, then the estimate.
+- **Account-wide %:**
+  - The best source is the statusline stdin `rate_limits.five_hour` / `seven_day` (`used_percentage`, `resets_at`). It is documented and has decimal precision. It only reaches a configured statusline script, so a snapshot file is needed: v0.8 writes it, `usage_read.read_statusline_snapshot` reads it.
+  - The `~/.claude.json` `cachedUsageUtilization` cache exists but is **unstable and stale**. `/usage` does not refresh it, and its refresh trigger is unknown.
+  - Manual `/usage` stays ground truth for now.
+- **No hook input carries usage %.** Hooks get `transcript_path`, so the local-token signal is available to them.
+- **Local tokens:** transcripts must be deduplicated by `message.id` and must include `<session>/subagents/*.jsonl`. Records are timestamped, so tokens can be summed for any time window.
+
+## Next sprint: v0.2 (Ledger), waiting for maintainer approval
+
+Start with the §6.1 protocol, as amended in CLAUDE.md:
+1. `/usage` at the start.
+2. Ask about claude.ai or other-machine use.
+3. Write the estimate.
+4. Ask for `/usage` again **only after the last commit**, and record small deltas as ±1%.
+
+Also check the 5-hour `resets_at` at the start. If the window resets mid-sprint, take a reading just before the reset and split the record.
+
+Before using hook fields in v0.2, re-verify the items marked *(unverified)* in `docs/data-sources.md` (hooks section). Use `SessionStart` / `Stop` input and output.
 
 ## Notes for the next session
 
-- **Python:** on this Windows machine `python3` is the Microsoft Store alias and does not work. Use `python` (3.14.8).
-- **Claude Code** 2.1.331. Plugin manifest facts are already verified in `docs/data-sources.md`. Don't re-fetch the plugins reference unless you need new fields.
-- **Line endings:** git warns LF→CRLF (`core.autocrlf` is on). Consider a `.gitattributes` (`* text=auto eol=lf`) so `.jsonl` and `.py` files stay LF. This needs maintainer approval because it is outside v0.0's scope.
-- **Estimation:** v0.0 was overestimated about 10×. Scaffolding with no exploration costs ~1–2%. The doc fetches in v0.1 will be the main cost driver. Fetch through a subagent and ask for concise facts only.
-- `/usage` reports whole percents, so small sprints have ±1% measurement noise.
+- `python3` is not available on this machine. Use `python` (3.14.8). The code must stay 3.10-compatible.
+- **Token windows for the dogfood ledger:**
+
+  ```
+  python scripts/usage_read.py tokens <transcript> --since <ISO> --until <ISO>
+  ```
+
+  The transcript for this repo is under `~/.claude/projects/<slug>/<session_id>.jsonl`. Never commit transcripts.
+- **Ledger schema:** v0.2 may change it. `local_tokens` is now filled from transcripts. Consider adding a `parts` field for split sessions and a per-model token split. Migrate the v0.0/v0.1 records if the schema changes.
