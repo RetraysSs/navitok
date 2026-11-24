@@ -1,0 +1,15 @@
+{
+  "name": "navitok",
+  "description": "Single-plugin marketplace for navitok.",
+  "owner": {
+    "name": "RetraysSs"
+  },
+  "plugins": [
+    {
+      "name": "navitok",
+      "source": "./",
+      "description": "Plans projects into releases that fit your 5-hour session and weekly usage limits.",
+      "version": "0.0.1"
+    }
+  ]
+}

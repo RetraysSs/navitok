@@ -1,0 +1,10 @@
+{
+  "name": "navitok",
+  "version": "0.0.1",
+  "description": "Plans projects into releases that fit your 5-hour session and weekly usage limits, keeps the schedule current, and calibrates its estimates from your history.",
+  "author": {
+    "name": "RetraysSs"
+  },
+  "license": "MIT",
+  "keywords": ["planning", "usage", "limits", "roadmap", "sessions"]
+}
