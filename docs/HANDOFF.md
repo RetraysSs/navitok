@@ -3,8 +3,10 @@
 ## Last sprint: v0.1 (Data source spike), done
 
 - **Commits:**
-  - `52934bc docs(data): record hooks, statusline and costs findings; amend dogfood protocol`
-  - `827c97f feat(data): usage source spike and adapters (v0.1.0)`
+  - `8cb2529 docs(data): record hooks, statusline and costs findings; amend dogfood protocol`
+  - `881f3b4 feat(data): usage source spike and adapters (v0.1.0)`
+  - `80a80c4 docs: v0.1 handoff`
+  - `1869d39 docs(dogfood): v0.1 record`
 - **Tests:** 17/17 pass (`python -m unittest discover -s tests -v`). `claude plugin validate .` passes with the same warnings as v0.0.
 - **Dogfood record:** v0.1 is in `docs/dogfood/ledger.jsonl` and `REPORT.md`. It was measured in two parts because the 5-hour window reset at 17:50 UTC mid-sprint.
 
@@ -40,3 +42,9 @@ Before using hook fields in v0.2, re-verify the items marked *(unverified)* in `
 
   The transcript for this repo is under `~/.claude/projects/<slug>/<session_id>.jsonl`. Never commit transcripts.
 - **Ledger schema:** v0.2 may change it. `local_tokens` is now filled from transcripts. Consider adding a `parts` field for split sessions and a per-model token split. Migrate the v0.0/v0.1 records if the schema changes.
+
+## Repository history note
+
+- On 2026-11-24 all local commits after `26303b4` were rewritten to remove AI co-author trailers, at the maintainer's request. Content is unchanged, but the hashes changed.
+- The pre-rewrite commits are on the local branch `backup/before-trailer-removal`. The maintainer may delete it.
+- **Commit rule:** never add `Co-Authored-By` or any other AI attribution line.
