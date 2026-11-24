@@ -1,47 +1,38 @@
 # Handoff
 
-## Last sprint: v0.1 (Data source spike), done
+## Last sprint: v0.2 (Ledger), done
 
-- **Commits:**
-  - `c11fc77 docs(data): record hooks, statusline and costs findings; amend dogfood protocol`
-  - `b15c070 feat(data): usage source spike and adapters (v0.1.0)`
-  - `475dbde docs: v0.1 handoff`
-  - `3c94f46 docs(dogfood): v0.1 record`
-- **Tests:** 17/17 pass (`python -m unittest discover -s tests -v`). `claude plugin validate .` passes with the same warnings as v0.0.
-- **Dogfood record:** v0.1 is in `docs/dogfood/ledger.jsonl` and `REPORT.md`. It was measured in two parts because the 5-hour window reset at 17:50 UTC mid-sprint.
+- **Commit:** `112ec71 feat(ledger): session history recording (v0.2.0)`.
+- **Tests:** 36/36 pass. `claude plugin validate .` passes with the same warnings as before.
+- **Acceptance:** a real `claude --plugin-dir .` session (send `hi`, then `/exit`) appended one valid record to `.navitok/history.jsonl`:
+  - local tokens (96.5k total), model, effort, `ended_cleanly: true`;
+  - an account-wide % from the usage cache, **flagged stale** (56 minutes old).
 
-### What v0.1 established (details in `docs/data-sources.md`)
+### What v0.2 built
 
-- **Account-wide %:**
-  - The best source is the statusline stdin `rate_limits.five_hour` / `seven_day` (`used_percentage`, `resets_at`). It is documented and has decimal precision. It only reaches a configured statusline script, so a snapshot file is needed: v0.8 writes it, `usage_read.read_statusline_snapshot` reads it.
-  - The `~/.claude.json` `cachedUsageUtilization` cache exists but is **unstable and stale**. `/usage` does not refresh it, and its refresh trigger is unknown.
-  - Manual `/usage` stays ground truth for now.
-- **No hook input carries usage %.** Hooks get `transcript_path`, so the local-token signal is available to them.
-- **Local tokens:** transcripts must be deduplicated by `message.id` and must include `<session>/subagents/*.jsonl`. Records are timestamped, so tokens can be summed for any time window.
+- `scripts/ledger.py`: schema 2 (§10.5 plus `session_id`, `local_tokens_by_model`, `parts`). `append` is locked and validated; `read_all` tolerates corrupt lines; `last_session`.
+- Hooks (`hooks/hooks.json` → `sh hooks/run.sh <start|stop|end>` → `scripts/hook_session.py`):
+  - `SessionStart` saves a snapshot, `Stop` refreshes it, `SessionEnd` writes the record. `SessionEnd` does no transcript parsing because of its 1.5 s budget.
+  - Active only when `<cwd>/.navitok/` exists. Always silent. Errors go to `.navitok/hook-errors.log`.
+  - State lives in `.navitok/sessions/<session_id>.json`. Orphans are flushed at the next start with `ended_cleanly: false`.
+- `run.sh` probes `python3`, then `python`, because the Windows Store alias does not run.
 
-## Next sprint: v0.2 (Ledger), waiting for maintainer approval
+### Lessons (keep in mind)
 
-Start with the §6.1 protocol, as amended in CLAUDE.md:
-1. `/usage` at the start.
-2. Ask about claude.ai or other-machine use.
-3. Write the estimate.
-4. Ask for `/usage` again **only after the last commit**, and record small deltas as ±1%.
+- **Hook stdin is UTF-8.** Python on Windows decodes stdin with the ANSI code page (cp1254 here), so always read `sys.stdin.buffer`. Test with non-ASCII paths: this machine's home is `C:\Users\ÜNSAL`.
+- To check whether a hook ran, look at the `system` / `stop_hook_summary` record in the transcript. Silent successful hooks leave no other trace.
+- **The usage cache (`~/.claude.json`) is effectively frozen.** Neither `/usage` nor a new session refreshed it. The account-wide % in automatic records is unreliable until the statusline snapshot exists (v0.8). Manual `/usage` stays ground truth for the dogfood ledger.
 
-Also check the 5-hour `resets_at` at the start. If the window resets mid-sprint, take a reading just before the reset and split the record.
+## Next sprint: v0.3 (Estimator v1, cold start), waiting for maintainer approval
 
-Before using hook fields in v0.2, re-verify the items marked *(unverified)* in `docs/data-sources.md` (hooks section). Use `SessionStart` / `Stop` input and output.
+- Start with the §6.1 protocol: `/usage` + reset time, claude.ai / other use, the estimate. Ask for the final `/usage` only after the last commit, and record small deltas as ±1.
+- Seed `references/heuristics.md` from `docs/dogfood/ledger.jsonl`, which now holds v0.0–v0.2. The first sprints were overestimated 3–10×.
 
-## Notes for the next session
+## Notes
 
-- `python3` is not available on this machine. Use `python` (3.14.8). The code must stay 3.10-compatible.
-- **Token windows for the dogfood ledger:**
-
-  ```
-  python scripts/usage_read.py tokens <transcript> --since <ISO> --until <ISO>
-  ```
-
-  The transcript for this repo is under `~/.claude/projects/<slug>/<session_id>.jsonl`. Never commit transcripts.
-- **Ledger schema:** v0.2 may change it. `local_tokens` is now filled from transcripts. Consider adding a `parts` field for split sessions and a per-model token split. Migrate the v0.0/v0.1 records if the schema changes.
+- Use `python`, not `python3`, on this machine. The code must stay 3.10-compatible.
+- `.navitok/` in this repo is local and gitignored. The hooks record our own dogfood sessions there when Claude Code runs with `--plugin-dir .`.
+- Token windows: `python scripts/usage_read.py tokens <transcript> --since <ISO> --until <ISO>`.
 
 ## Repository history note
 
