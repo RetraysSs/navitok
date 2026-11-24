@@ -1,6 +1,6 @@
 {
   "name": "navitok",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Plans projects into releases that fit your 5-hour session and weekly usage limits, keeps the schedule current, and calibrates its estimates from your history.",
   "author": {
     "name": "RetraysSs"

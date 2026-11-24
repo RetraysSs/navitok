@@ -65,6 +65,21 @@ Source: https://code.claude.com/docs/en/hooks, the SessionStart, Stop, SessionEn
   - Hook stdin is **UTF-8**. Python on Windows decodes `sys.stdin` with the ANSI code page (cp1254 on the dev machine), which garbled the non-ASCII `cwd`, so the hook silently found no `.navitok/`. **Hooks must read `sys.stdin.buffer` and decode it as UTF-8.**
   - Successful silent hooks leave no `attachment` in the transcript. Stop hooks do appear in a `system` / `stop_hook_summary` record (`hookInfos[].command`, `durationMs`, `hookErrors`), which is useful for checking that a hook ran.
 
+### Hooks re-verification for v0.5: `UserPromptSubmit` (checked 2026-11-24)
+
+Source: https://code.claude.com/docs/en/hooks. The page is too long for one fetch. Items marked *verbatim* were quoted from raw page text; the rest came from a model summary of the UserPromptSubmit section and are marked *(summary)*.
+
+- *Verbatim:* "**`UserPromptSubmit`, `UserPromptExpansion`, `SessionStart`, and `PostModelSwitch`**: Claude Code adds plain-text stdout as context that Claude can see and act on. It doesn't add stdout it failed to parse." **This is navitok's Tier-1 channel: one plain line on exit 0.**
+- *Verbatim:* "Claude never sees stderr from a hook that exits 0." Exit 2 on `UserPromptSubmit` rejects the prompt, so navitok never exits 2 there.
+- *Verbatim:* `UserPromptSubmit` has "no matcher support" and "always fires on every occurrence".
+- *Verbatim:* the default `command` timeout is lowered to 30 s on `UserPromptSubmit`. navitok sets 10 s.
+- *(summary)* Input: the common fields plus `prompt` (and `session_title` when set). navitok reads only `cwd`.
+- *(summary)* Neither plain stdout nor `additionalContext` makes a visible transcript entry; each is injected as a system reminder that starts with the hook's name.
+- *(summary)* JSON alternative: `{"hookSpecificOutput": {"hookEventName": "UserPromptSubmit", "additionalContext": "..."}}`. `decision: "block"` rejects the prompt. Not used.
+- *(summary)* Hook strings and plain stdout are capped at 10,000 characters; longer output is moved to a file with a 2,000-character preview. navitok's line is far below that.
+- *(summary)* A `UserPromptSubmit` hook that times out is cancelled and its output discarded; the prompt still goes through.
+- **Observed locally (v0.5 acceptance, Git Bash, Windows):** `sh hooks/run.sh prompt` with UTF-8 stdin and a non-ASCII `cwd` printed nothing for unchanged usage and exactly one line when the fit status flipped. A live in-session check that the line reaches Claude's context is still pending (needs `/reload-plugins` in a project with `.navitok/plan.json`).
+
 ## Statusline (checked 2026-11-24)
 
 Source: https://code.claude.com/docs/en/statusline. Status: **documented**.

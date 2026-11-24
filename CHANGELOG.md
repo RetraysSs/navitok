@@ -3,6 +3,21 @@
 All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.5.0] - 2026-11-24
+
+### Added
+
+- `scripts/schedule.py`, the schedule engine (ROADMAP §4.1–4.2). Deterministic, stdlib only, never calls the model.
+  - **Tier 0:** `recompute` turns `plan.json`, `config.json` and the best account reading (statusline snapshot, then usage cache) into `.navitok/schedule.json` (§10.7). It covers the current release, fits this session or not, and placement of every pending release into sessions and weeks. A window whose reset time has passed counts as fresh.
+  - **Weekly packing:** strict mode moves a release that would overflow the week into the next week. Flex mode keeps it and marks it as extra usage. Weekly cost is 0.15× the session cost at cold start (from the dogfood ledger), overridable with `weekly_per_session` in `config.json`.
+  - **Tier 1:** one line for Claude, only when the fit status changes: "no longer fits", or "fits again" after a no-fit. Unchanged or unknown usage prints nothing.
+  - **Tier 2:** detects the §10.4 replan triggers. They are a release larger than one session, the last two tasks over their upper estimates by more than 30%, the final release slipping more than a week from its baseline, and `config.json` plan or mode differing from `plan.json`. These are only offered at the next task boundary; the script never edits `plan.json`.
+  - `--session-pct` / `--weekly-pct` feed a manual `/usage` reading or simulate usage jumps. `show` prints the schedule.
+- `UserPromptSubmit` hook (`hooks/run.sh prompt`): recomputes before every prompt in projects with `.navitok/plan.json`. Plain stdout is the Tier-1 channel (verified against the hooks docs, see `docs/data-sources.md`). Always exits 0.
+- `.navitok/ROADMAP.md` gets a Schedule section, re-rendered after every recompute and written only when its text changes. `plan.py render` and `price` keep the last schedule section.
+- `SKILL.md`: how to react to Tier-1 and Tier-2 lines (finish the task, then checkpoint; offer replans only at task boundaries), and how to feed a `/usage` reading.
+- Tests for packing, the threshold boundary, strict and flex weeks, every replan trigger, notice de-duplication, the hook (UTF-8 stdin, non-ASCII paths, never failing) and the plugin files.
+
 ## [0.4.0] - 2026-11-24
 
 ### Added

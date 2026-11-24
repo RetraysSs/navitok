@@ -15,4 +15,4 @@ Multipliers scale the Pro-based heuristics in [`heuristics.md`](heuristics.md). 
 
 - The cold-start stop threshold is **90%** of a session on every limited plan. The ceiling is 98%, reached only through calibration (ROADMAP §10.1).
 - Usage outside Claude Code (claude.ai, other machines) shares the same limits. navitok measures it separately and never counts it as estimation error.
-- The weekly limit is tracked as a % as well. Weekly packing arrives with the schedule engine (v0.5).
+- The weekly limit is tracked as a % as well. Weekly packing (`schedule.py`) assumes one session % costs **0.15 weekly %** at cold start. That value comes from the dogfood ledger (one maintainer, Pro) and can be overridden with `weekly_per_session` in `config.json`. Strict mode moves a release that would overflow the week to the next week. Flex mode keeps it and marks it as extra usage.

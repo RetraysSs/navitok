@@ -1,6 +1,6 @@
 ---
 name: navitok
-description: Plans a project into releases that each fit one 5-hour Claude session under the user's usage limits, priced as ranges of session %. Use when the user asks to plan or break down a project around their Claude usage limits, or runs /navitok:plan. Checking fit during work and handoffs arrive in later releases.
+description: Plans a project into releases that each fit one 5-hour Claude session under the user's usage limits, priced as ranges of session %. Use when the user asks to plan or break down a project around their Claude usage limits, or runs /navitok:plan. Keeps a live schedule and reacts to one-line navitok notices about fit and replans.
 ---
 
 # navitok: plan a project into session-sized releases
@@ -12,6 +12,8 @@ Scripts (Python 3.10+ standard library). Run them from the user's project root w
 - `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/plan.py" config --plan <plan> --mode <mode>`
 - `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/plan.py" price`
 - `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/plan.py" render`
+- `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/schedule.py" recompute [--session-pct N --weekly-pct N]`
+- `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/schedule.py" show`
 
 Cost table: `${CLAUDE_PLUGIN_ROOT}/skills/navitok/references/heuristics.md`. Plans: `${CLAUDE_PLUGIN_ROOT}/skills/navitok/references/plans.md`. Read them only if the user asks how estimates work.
 
@@ -47,6 +49,15 @@ Keep the conversation short. Each question and each file read costs the user's u
 
 To change the plan later, edit `plan.json` and run `price` again. To refresh only the roadmap view, run `render`.
 
+## Schedule and notices
+
+A `UserPromptSubmit` hook runs `schedule.py` before every prompt. It writes `.navitok/schedule.json` (script-owned: never edit it) and refreshes the Schedule section of `.navitok/ROADMAP.md`. It costs no tokens and is silent unless the fit status changes.
+
+- **A line starting with `navitok:` and saying a release no longer fits** (Tier 1): finish the task you are on, then stop at a clean point and offer the user a checkpoint (commit + short handoff). Do not start the next task. Mention it once; do not repeat it.
+- **A line saying `replan suggested`** (Tier 2): do not replan mid-task. When the current task is done, tell the user the reason in one sentence and ask whether to replan. Only if they agree, edit `plan.json` and run `plan.py price`. If they decline, continue.
+- **If the user gives you a `/usage` reading**, run `schedule.py recompute --session-pct <session> --weekly-pct <weekly>` so the schedule uses it.
+- To answer "where are we?", run `schedule.py show`. Do not compute fits yourself.
+
 ## Not available yet
 
-Live fit checks during work, the schedule, the statusline and handoffs arrive in later navitok releases. If the user asks for them, say so. Do not invent usage numbers.
+The per-task fit check, `/navitok:checkpoint`, handoffs, calibration from history, external-usage reserves and the statusline arrive in later navitok releases. If the user asks for them, say so. Do not invent usage numbers.

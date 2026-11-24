@@ -182,7 +182,7 @@ def _rng(r):
     return f"{r[0]:.1f}–{r[1]:.1f}%"
 
 
-def render(plan, threshold=estimate.THRESHOLD, template_path=TEMPLATE):
+def render(plan, threshold=estimate.THRESHOLD, template_path=TEMPLATE, schedule=None):
     unit = "Pro-equivalent units (API plan: no session limit)" if plan["plan"] == "api" \
         else f"% of one 5-hour session on {plan['plan']}"
     summary = ["| Release | Title | Tasks | Estimate | Confidence |", "|---|---|---|---|---|"]
@@ -202,13 +202,18 @@ def render(plan, threshold=estimate.THRESHOLD, template_path=TEMPLATE):
     text = Template(Path(template_path).read_text(encoding="utf-8")).safe_substitute(
         project=plan["project"], plan=plan["plan"], mode=plan["mode"], unit=unit,
         threshold=f"{threshold:.0f}", total=_rng(total), release_count=len(plan["releases"]),
-        summary="\n".join(summary), releases="\n".join(details).rstrip())
+        summary="\n".join(summary), releases="\n".join(details).rstrip(),
+        schedule=schedule or "Not computed yet. It appears after the first `schedule.py recompute`.")
     return text.rstrip() + "\n"
 
 
-def write_roadmap(project_dir, plan, threshold):
+def write_roadmap(project_dir, plan, threshold, schedule=None):
     out = navitok_dir(project_dir) / "ROADMAP.md"
-    out.write_text(render(plan, threshold), encoding="utf-8", newline="\n")
+    if schedule is None:  # keep the last computed schedule section (lazy import: schedule imports plan)
+        import schedule as schedmod
+        sched = schedmod.load_schedule(project_dir)
+        schedule = schedmod.render_section(sched) if sched else None
+    out.write_text(render(plan, threshold, schedule=schedule), encoding="utf-8", newline="\n")
     return out
 
 

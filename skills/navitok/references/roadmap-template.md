@@ -12,3 +12,9 @@ $summary
 ## Tasks
 
 $releases
+
+## Schedule
+
+Recomputed by `scripts/schedule.py` from your current usage, before every prompt. It costs no tokens.
+
+$schedule
