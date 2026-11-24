@@ -51,8 +51,8 @@
 ```bash
 mkdir navitok && cd navitok
 git init
-# Put ROADMAP.md and CLAUDE.md in this folder
-git add ROADMAP.md CLAUDE.md
+# Put ROADMAP.md and CLAUDE.md in this folder (CLAUDE.md stays local: it is gitignored, not committed)
+git add ROADMAP.md
 git commit -m "docs: initial roadmap and project rules"
 
 # Publish (now or at v1.0):
@@ -554,7 +554,7 @@ If a sprint spans more than one session, record each session separately.
 
 ## 9. Driving the build with Claude Code
 
-1. Put this file and `CLAUDE.md` at the repo root (§2.2).
+1. Put this file and `CLAUDE.md` at the repo root (§2.2). `CLAUDE.md` stays local and is not committed; Claude Code reads it from the working tree.
 2. Run `claude` in the repo folder.
 3. First message:
 
