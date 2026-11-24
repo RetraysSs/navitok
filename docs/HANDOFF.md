@@ -1,46 +1,28 @@
 # Handoff
 
-## Last sprint: v0.2 (Ledger), done
+## Last sprint: v0.3 (Estimator v1, cold start), done
 
-- **Commit:** `112ec71 feat(ledger): session history recording (v0.2.0)`.
-- **Tests:** 36/36 pass. `claude plugin validate .` passes with the same warnings as before.
-- **Acceptance:** a real `claude --plugin-dir .` session (send `hi`, then `/exit`) appended one valid record to `.navitok/history.jsonl`:
-  - local tokens (96.5k total), model, effort, `ended_cleanly: true`;
-  - an account-wide % from the usage cache, **flagged stale** (56 minutes old).
+- **Commit:** `b326561 feat(estimate): cold-start estimator (v0.3.0)`.
+- **Tests:** 59/59 pass (23 new).
+- **Acceptance:** `python scripts/estimate.py examples/tasks.json` prints a table: per-task range, confidence, notes, total `5.4-20.9`, and the 90% fit check.
 
-### What v0.2 built
+### What v0.3 built
 
-- `scripts/ledger.py`: schema 2 (§10.5 plus `session_id`, `local_tokens_by_model`, `parts`). `append` is locked and validated; `read_all` tolerates corrupt lines; `last_session`.
-- Hooks (`hooks/hooks.json` → `sh hooks/run.sh <start|stop|end>` → `scripts/hook_session.py`):
-  - `SessionStart` saves a snapshot, `Stop` refreshes it, `SessionEnd` writes the record. `SessionEnd` does no transcript parsing because of its 1.5 s budget.
-  - Active only when `<cwd>/.navitok/` exists. Always silent. Errors go to `.navitok/hook-errors.log`.
-  - State lives in `.navitok/sessions/<session_id>.json`. Orphans are flushed at the next start with `ended_cleanly: false`.
-- `run.sh` probes `python3`, then `python`, because the Windows Store alias does not run.
+- `scripts/estimate.py`: `estimate_task`, `estimate`, `render`, CLI (`--plan`, `--json`). Exit 2 with a one-line error on bad input.
+  - Range = base(type, Pro, size S) x size (S 1 / M 2.5 / L 6) x files (first 3 free, +0.1 each, cap 2.0) x plan.
+  - Unknown type → widest range, confidence 10. Unknown or missing size → L, confidence at most 20. Known → 30.
+  - Totals are plain sums. `fits_one_session` = total high ≤ 90. API: no fit check (`null`).
+- `skills/navitok/references/heuristics.md` and `plans.md`. A test parses their tables and fails if they drift from the script's constants.
 
-### Lessons (keep in mind)
+### Decisions to review
 
-- **Hook stdin is UTF-8.** Python on Windows decodes stdin with the ANSI code page (cp1254 here), so always read `sys.stdin.buffer`. Test with non-ASCII paths: this machine's home is `C:\Users\ÜNSAL`.
-- To check whether a hook ran, look at the `system` / `stop_hook_summary` record in the transcript. Silent successful hooks leave no other trace.
-- **The usage cache (`~/.claude.json`) is effectively frozen.** Neither `/usage` nor a new session refreshed it. The account-wide % in automatic records is unreliable until the statusline snapshot exists (v0.8). Manual `/usage` stays ground truth for the dogfood ledger.
+- Plan multipliers (Max 5x = 0.2, Max 20x = 0.05) follow the plans' nominal names. They are a cold-start guess, labelled as such.
+- `refactor` has no seed data; its range sits between `test` and `feature`.
+- Cold-start confidence is capped at 30, since §10.1 gives 0 with no history.
 
-## Next sprint: v0.3 (Estimator v1, cold start): approved, not started
+## Next sprint: v0.4 (Plan generator, `M`): not started, needs approval
 
-The maintainer approved v0.3 and chose to start it in a **fresh session**, because this long conversation made each turn expensive. The last reading in the old session was session 15% and weekly 14% (no claude.ai use). It is **not** the v0.3 start: take a new `/usage` reading at the start of the new session.
-
-Estimate written before any work (reuse it, or revise it before starting):
-
-| Task | Work | Estimate |
-|---|---|---|
-| t1 | `skills/navitok/references/heuristics.md`, seeded from the dogfood ledger (one maintainer's data) | 1–2% |
-| t2 | `skills/navitok/references/plans.md`: Pro / Max 5x / Max 20x / API, percentages only, no token claims | 1–2% |
-| t3 | `scripts/estimate.py` (range per task, total, confidence, 90% threshold, unknown type → widest range) + `examples/tasks.json` | 2–4% |
-| t4 | Tests: boundaries, unknown types, CLI table | 1–2% |
-| t5 | Wrap-up | 0.5–1.5% |
-| **Total** | | **5.5–11.5%**. The range was widened for the long old context, so expect the low end in a fresh session. |
-
-
-- Start with the §6.1 protocol: `/usage` + reset time, claude.ai / other use, the estimate. Ask for the final `/usage` only after the last commit, and record small deltas as ±1.
-- Seed `references/heuristics.md` from `docs/dogfood/ledger.jsonl`, which now holds v0.0–v0.2. The first sprints were overestimated 3–10×.
+See ROADMAP §7 v0.4. It is size M: consider whether it needs a split before starting. It uses `estimate.py` to price tasks.
 
 ## Notes
 
