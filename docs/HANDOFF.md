@@ -20,6 +20,12 @@
 - `refactor` has no seed data; its range sits between `test` and `feature`.
 - Cold-start confidence is capped at 30, since §10.1 gives 0 with no history.
 
+### Lessons from v0.2 (keep in mind)
+
+- **Hook stdin is UTF-8.** Python on Windows decodes stdin with the ANSI code page (cp1254 here), so always read `sys.stdin.buffer`. Test with non-ASCII paths: this machine's home is `C:\Users\ÜNSAL`.
+- To check whether a hook ran, look at the `system` / `stop_hook_summary` record in the transcript. Silent successful hooks leave no other trace.
+- **The usage cache (`~/.claude.json`) is effectively frozen.** Neither `/usage` nor a new session refreshed it. The account-wide % in automatic records is unreliable until the statusline snapshot exists (v0.8). Manual `/usage` stays ground truth for the dogfood ledger.
+
 ## Next sprint: v0.4 (Plan generator, `M`): not started, needs approval
 
 See ROADMAP §7 v0.4. It is size M: consider whether it needs a split before starting. It uses `estimate.py` to price tasks.
