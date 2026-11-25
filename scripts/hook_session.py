@@ -63,6 +63,34 @@ def _write_json(path, data):
     os.replace(tmp, path)
 
 
+def plan_tasks(nav):
+    """{task id: compact task} from plan.json, or {} (no plan / unreadable)."""
+    data = _read_json(nav / "plan.json")
+    out = {}
+    if not isinstance(data, dict):
+        return out
+    for rel in data.get("releases") or []:
+        for t in (rel.get("tasks") or []) if isinstance(rel, dict) else []:
+            if isinstance(t, dict) and t.get("id"):
+                out[t["id"]] = {"release": rel.get("id"), "status": t.get("status", "todo"),
+                                "type": t.get("type"), "size": t.get("size"), "files": t.get("files"),
+                                "est_pct": t.get("est_pct")}
+    return out
+
+
+def finished_tasks(before, after):
+    """Ledger tasks for plan tasks that became done during the session (§10.5).
+    Per-task actuals are unknown here: calibrate.py apportions the session."""
+    out = []
+    for tid, t in after.items():
+        if t["status"] == "done" and (before.get(tid) or {}).get("status") != "done":
+            est = t.get("est_pct")
+            out.append({"id": tid, "release": t["release"], "type": t["type"], "size": t["size"],
+                        "files": t["files"], "est_pct": est if isinstance(est, list) and len(est) == 2 else None,
+                        "actual_pct": None, "max_step_pct": None})
+    return out
+
+
 def snapshot(payload, nav, now=None, cache_path=None, read_tokens=True):
     now = now or _now()
     reading = usage_read.account_usage(nav / SNAPSHOT_FILE, cache_path, now=now)
@@ -99,7 +127,7 @@ def _pct(reading, key):
     return reading.get(key) if reading else None
 
 
-def build_record(state, end_reading=None, ended_cleanly=True, reason=None, ts_end=None):
+def build_record(state, end_reading=None, ended_cleanly=True, reason=None, ts_end=None, tasks=None):
     start = state.get("start") or {}
     last = state.get("last") or start
     # Never reuse the start reading as the end reading: that would fake a 0 delta.
@@ -130,6 +158,8 @@ def build_record(state, end_reading=None, ended_cleanly=True, reason=None, ts_en
         local_tokens=_diff_tokens(last.get("tokens"), start.get("tokens")),
         local_tokens_by_model=models,
         ended_cleanly=ended_cleanly,
+        release=(tasks or [{}])[0].get("release"),
+        tasks=[{k: v for k, v in t.items() if k != "release"} for t in tasks or []],
         notes="; ".join(notes),
     )
 
@@ -148,7 +178,8 @@ def on_start(payload, nav, now=None, cache_path=None):
     if _read_json(path):  # resume/compact of a live session: keep the original start
         return
     _write_json(path, {"session_id": session_id,
-                       "start": snapshot(payload, nav, now, cache_path)})
+                       "start": snapshot(payload, nav, now, cache_path),
+                       "plan_tasks": plan_tasks(nav)})
 
 
 def on_stop(payload, nav, now=None, cache_path=None):
@@ -167,8 +198,9 @@ def on_end(payload, nav, now=None, cache_path=None):
         return
     now = now or _now()
     end_reading = usage_read.account_usage(nav / SNAPSHOT_FILE, cache_path, now=now)
-    ledger.append(build_record(state, end_reading, reason=payload.get("reason"), ts_end=usage_read.iso(now)),
-                  nav / "history.jsonl")
+    tasks = finished_tasks(state.get("plan_tasks") or {}, plan_tasks(nav))
+    ledger.append(build_record(state, end_reading, reason=payload.get("reason"), ts_end=usage_read.iso(now),
+                               tasks=tasks), nav / "history.jsonl")
     path.unlink(missing_ok=True)
 
 

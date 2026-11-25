@@ -1,6 +1,6 @@
 ---
 name: navitok
-description: Plans a project into releases that each fit one 5-hour Claude session under the user's usage limits, priced as ranges of session %. Use when the user asks to plan or break down a project around their Claude usage limits, or runs /navitok:plan or /navitok:checkpoint. Keeps a live schedule, checks before every task that it still fits, writes handoffs, and reacts to one-line navitok notices about fit and replans.
+description: Plans a project into releases that each fit one 5-hour Claude session under the user's usage limits, priced as ranges of session %. Use when the user asks to plan or break down a project around their Claude usage limits, or runs /navitok:plan, /navitok:checkpoint or /navitok:status. Keeps a live schedule, checks before every task that it still fits, writes handoffs, and reacts to one-line navitok notices about fit and replans.
 ---
 
 # navitok: plan a project into session-sized releases
@@ -85,6 +85,19 @@ On `/navitok:checkpoint`, or when the user agrees to one:
 
 When a session starts and `.navitok/HANDOFF.md` exists, a `navitok handoff` line is added to your context. Use it to say where work stands, for example "continuing v0.2, task 3", and continue from the next task. Run the fit check first. Read `.navitok/HANDOFF.md` only if you need the notes or the file list. Do not re-explore the repository to rediscover the state.
 
+## Learning and status
+
+navitok calibrates itself from `.navitok/history.jsonl`. The session hooks record each session and the plan tasks finished in it. A `SessionStart` hook refreshes `.navitok/calibration.json` (script-owned: never edit it). After 5 learned sessions:
+
+- `plan.py price` uses the learned per-type ranges (task notes say "learned from history"),
+- the stop threshold can rise from 90% up to 98% when estimates are steady (§10.1),
+- the fit-check buffer uses the largest observed step,
+- usage outside Claude Code (claude.ai, other machines) is measured, kept out of estimation error, and reserved in the weekly schedule.
+
+Before that, everything stays at the cold start, and external usage is reported as unknown, not zero.
+
+On `/navitok:status`, or when the user asks how much is left, run `calibrate.py status` and show its output as is. Never compute or adjust these numbers yourself.
+
 ## Not available yet
 
-Calibration from history, external-usage reserves, the adaptive threshold and the statusline arrive in later navitok releases. Until then the fit check uses the 90% cold-start threshold and a 2% buffer. If the user asks for those features, say so. Do not invent usage numbers.
+The statusline and the terminal panel arrive in later navitok releases. If the user asks for them, say so. Do not invent usage numbers.

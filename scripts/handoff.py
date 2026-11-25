@@ -59,7 +59,7 @@ def _fmt(x):
 def _priced(plan, cfg):
     if all(isinstance(t.get("est_pct"), list) for r in plan["releases"] for t in r["tasks"]):
         return plan
-    priced, _ = planmod.price(copy.deepcopy(plan), planmod.threshold_for(cfg))
+    priced, _ = planmod.price(copy.deepcopy(plan), planmod.threshold_for(cfg), planmod.learned_types(cfg))
     return priced
 
 
@@ -104,6 +104,9 @@ def fit_check(plan, cfg, sched, task_id=None):
         return {"verdict": "DONE", "line": "DONE: no task left in the plan."}
     hi = float((task.get("est_pct") or [0, 0])[1])
     max_step = cfg.get("max_step_pct")
+    if not _num(max_step):  # learned by calibrate.py (§10.1)
+        cal = cfg.get(planmod.CALIBRATION_KEY)
+        max_step = cal.get("max_step") if isinstance(cal, dict) and cal.get("learned") else None
     buffer = max(MIN_BUFFER, float(max_step) if _num(max_step) else 0.0)
     sched = sched or {}
     threshold = sched.get("threshold")

@@ -1,6 +1,6 @@
 # Cold-start heuristics
 
-navitok uses this table only until it has your own history (ROADMAP §10.1: fewer than 5 learned sessions). After that, your history drives every estimate.
+navitok uses this table only until it has your own history (ROADMAP §10.1: fewer than 5 learned sessions). After that, `scripts/calibrate.py` learns a range per task type from your history (a type needs at least 3 task samples), and that range replaces the row below. Types without enough samples keep this table.
 
 > **Seed data: one maintainer, one plan (Pro), one project.** The table comes from the dogfood ledger (`docs/dogfood/ledger.jsonl`, sprints v0.0–v0.2 of navitok itself). It improves the cold start. It does not replace per-user calibration.
 

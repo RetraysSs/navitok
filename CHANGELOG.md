@@ -3,6 +3,35 @@
 All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.7.0] - 2026-11-25
+
+### Added
+
+- `scripts/calibrate.py`: learning from `.navitok/history.jsonl` (ROADMAP §10.1). Deterministic, stdlib only.
+  - **Error on local usage only.** A session's local % is split across its tasks by estimate midpoint, then normalised to size S, Pro, ≤3 files. This gives a weighted mean and standard deviation per task type. A type with at least 3 samples (after 5 learned sessions) replaces its cold-start range.
+  - **Outlier guard:** missing data, debugging spirals (local actual more than 2× the summed upper estimates) and large unexplained external usage are flagged. They get weight ×0.2 and are not counted in `n`.
+  - **Weights:** recency (half-life of 10 records). Records with a different model or plan get ×0.3.
+  - **Adaptive threshold** `100 − 1.5·max_step − 2·sigma_err`, clamped to 90–98, with 90 while `n < 5`. Confidence `min(100, 5n)·(1 − min(1, sigma_err/10))`. `max_step` is the largest recorded step, else the largest apportioned task actual.
+  - Also learns the weekly-%-per-session-% ratio after 5 sessions.
+  - `update` writes `.navitok/calibration.json` (script-owned). `report --history PATH` prints the calibration as JSON. `status` is the `/navitok:status` text. `hook` runs at `SessionStart` and is silent.
+- `scripts/external.py`: external usage (§10.3), meaning account delta − local delta. Local delta is weighted tokens × a fitted %-per-token rate. Also a per-weekday mean/P80, and a per-week mean/P80 with this week's total and the reserve still to hold. It is "unknown" for the first 5 sessions. The token weights are an assumption, marked unstable in `docs/data-sources.md`.
+- `/navitok:status` (`commands/status.md`): session used and left, threshold, calibration and confidence, external usage this week, and the next release.
+- The session recorder attaches the plan tasks finished during a session (status diff of `plan.json` between `SessionStart` and `SessionEnd`) to each history record, so calibration has estimate/actual pairs.
+
+### Changed
+
+- `plan.py`:
+  - `load_config` attaches `calibration.json` and `write_config` never writes it back.
+  - `threshold_for` uses the learned threshold. An override can still only lower it.
+  - `price` uses the learned per-type ranges (task note "learned from history").
+- `schedule.py`:
+  - Weekly packing reserves the learned external usage (`week.external_reserved_pct`; null while unknown).
+  - It uses the learned weekly ratio unless `config.json` sets one.
+  - The Schedule section says how much is reserved.
+- `handoff.py fit`: the buffer uses the learned `max_step`. `config.max_step_pct` still wins.
+- `hooks/run.sh start`: recorder, then calibration refresh (silent), then the handoff summary.
+- `SKILL.md`: a "Learning and status" section.
+
 ## [0.6.0] - 2026-11-25
 
 ### Added

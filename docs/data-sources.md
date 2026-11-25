@@ -89,6 +89,16 @@ Source: https://code.claude.com/docs/en/hooks, SessionStart section. Read throug
 - *(summary)* Plain stdout and `additionalContext` are capped at 10,000 characters (longer text goes to a file with a 2,000-character preview). navitok's summary is capped at 600.
 - **Observed locally (v0.6 acceptance, Git Bash, Windows):** in a synthetic project with a non-ASCII path, `claude -p --plugin-dir .` with all file tools disabled answered "v0.1 (Core), task 3 of 4, Storage to JSON, in progress, `storage.py` uncommitted" from the injected line alone. This also confirms that plain SessionStart stdout reaches context in `-p` mode. The recorder in the same hook still wrote its record.
 
+## Local usage % from tokens (v0.7, 2026-11-25) — **UNSTABLE, navitok's own assumption**
+
+External usage (§10.3) needs the local share of the account-wide %. No documented source converts tokens to plan-limit %. `scripts/external.py` therefore:
+
+- **Weights token types** before converting: input 1, output 5, cache read 0.1, cache write 1.25. These follow relative API prices. How plan limits really count tokens is **not documented**, so the weights are an assumption. Change them only in `external.TOKEN_WEIGHTS`.
+- **Fits % per weighted token** as the 25th percentile of `account_delta / weighted_tokens` over at least 5 sessions. External usage only raises that ratio, so the low end is the cleanest estimate of Claude Code alone. A recorded `external_pct` is subtracted first.
+- **On the dogfood ledger** (7 records, 6 usable) it fits ≈8.0e-6 % per weighted token. Local % then explains the account delta of every sprint to within about 1.4%, which is within `/usage`'s ±1 resolution.
+- **Weekly profile:** uses ISO weeks (UTC), not the account's own weekly window. The weekly % rise *between* consecutive records in the same week counts as external. In the dogfood ledger that gap also holds unrecorded local chores, so the profile overstates external usage there.
+- **Until 5 sessions** have token data, external usage is `unknown` (null) and nothing is reserved.
+
 ## Statusline (checked 2026-11-24)
 
 Source: https://code.claude.com/docs/en/statusline. Status: **documented**.

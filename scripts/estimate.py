@@ -83,8 +83,10 @@ def files_factor(files):
     return min(FILES_CAP, 1.0 + FILES_STEP * max(0, files - FILES_FREE))
 
 
-def estimate_task(task, plan="pro"):
-    """Return a dict with the task's range (lo, hi) and confidence."""
+def estimate_task(task, plan="pro", learned=None):
+    """Return a dict with the task's range (lo, hi) and confidence.
+    `learned` ({type: {"est_pct": [lo, hi], "confidence": c}}, from calibrate.py)
+    replaces the cold-start base range for the types it covers."""
     if not isinstance(task, dict):
         raise EstimateError(f"task must be an object, got {task!r}")
     plan = normalize_plan(plan)
@@ -92,7 +94,11 @@ def estimate_task(task, plan="pro"):
     size = str(task.get("size") or "").strip().upper()
     notes = []
 
-    if ttype in BASE:
+    if learned and ttype in learned:
+        lo, hi = learned[ttype]["est_pct"]
+        conf = int(learned[ttype].get("confidence") or CONF_KNOWN)
+        notes.append("learned from history")
+    elif ttype in BASE:
         lo, hi = BASE[ttype]
         conf = CONF_KNOWN
     else:
@@ -119,12 +125,12 @@ def estimate_task(task, plan="pro"):
     }
 
 
-def estimate(tasks, plan="pro"):
+def estimate(tasks, plan="pro", learned=None):
     """Estimate a task list. Totals are plain sums (no variance pooling)."""
     if not isinstance(tasks, list):
         raise EstimateError("tasks must be a list")
     plan = normalize_plan(plan)
-    rows = [estimate_task(t, plan) for t in tasks]
+    rows = [estimate_task(t, plan, learned) for t in tasks]
     lo = round(sum(r["est_pct"][0] for r in rows), 2)
     hi = round(sum(r["est_pct"][1] for r in rows), 2)
     weight = sum(r["est_pct"][1] for r in rows)

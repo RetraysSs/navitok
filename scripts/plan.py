@@ -27,6 +27,7 @@ MODES = ("strict", "flex")
 STATUSES = ("todo", "doing", "done", "skipped")
 CONFIG_DEFAULTS = {"schema": SCHEMA, "plan": "pro", "mode": "strict", "threshold_override": None,
                    "statusline": False, "trim_output": False}
+CALIBRATION_KEY = "calibration"  # attached by load_config from calibration.json
 TEMPLATE = Path(__file__).resolve().parent.parent / "skills" / "navitok" / "references" / "roadmap-template.md"
 
 
@@ -63,6 +64,15 @@ def load_config(project_dir="."):
         if not isinstance(data, dict):
             raise PlanError(f"{path}: must be an object")
         cfg.update(data)
+    cfg.pop(CALIBRATION_KEY, None)
+    cal_path = navitok_dir(project_dir) / "calibration.json"
+    if cal_path.exists():  # script-owned (calibrate.py); attached, never written back
+        try:
+            cal = json.loads(cal_path.read_text(encoding="utf-8"))
+            if isinstance(cal, dict):
+                cfg[CALIBRATION_KEY] = cal
+        except (OSError, ValueError):
+            pass
     return cfg
 
 
@@ -74,16 +84,34 @@ def write_config(project_dir=".", plan=None, mode=None):
         if mode not in MODES:
             raise PlanError(f"mode must be one of {MODES}, got {mode!r}")
         cfg["mode"] = mode
-    _write_json(navitok_dir(project_dir) / "config.json", cfg)
+    _write_json(navitok_dir(project_dir) / "config.json",
+                {k: v for k, v in cfg.items() if k != CALIBRATION_KEY})
     return cfg
 
 
 def threshold_for(cfg):
-    """Cold start: fixed 90. An override may only lower it (safety first)."""
+    """90 at cold start; the learned §10.1 threshold (clamped to 90-98) once
+    calibrate.py has enough history. An override may only lower it."""
+    base = estimate.THRESHOLD
+    cal = cfg.get(CALIBRATION_KEY)
+    learned = cal.get("threshold") if isinstance(cal, dict) and cal.get("learned") else None
+    if isinstance(learned, (int, float)) and not isinstance(learned, bool):
+        base = min(98.0, max(estimate.THRESHOLD, float(learned)))
     override = cfg.get("threshold_override")
-    if isinstance(override, (int, float)) and not isinstance(override, bool) and 0 < override < estimate.THRESHOLD:
+    if isinstance(override, (int, float)) and not isinstance(override, bool) and 0 < override < base:
         return float(override)
-    return estimate.THRESHOLD
+    return base
+
+
+def learned_types(cfg):
+    """Per-type learned ranges for estimate.py, or None at cold start."""
+    cal = cfg.get(CALIBRATION_KEY)
+    if not isinstance(cal, dict) or not cal.get("learned"):
+        return None
+    out = {t: {"est_pct": v["est_pct"], "confidence": cal.get("confidence", 0)}
+           for t, v in (cal.get("types") or {}).items()
+           if isinstance(v, dict) and isinstance(v.get("est_pct"), list)}
+    return out or None
 
 
 # --- plan -------------------------------------------------------------------
@@ -146,7 +174,7 @@ def validate(plan):
     return errs
 
 
-def price(plan, threshold=estimate.THRESHOLD):
+def price(plan, threshold=estimate.THRESHOLD, learned=None):
     """Fill est_pct on every task and release (in place).
 
     Returns (plan, over) where `over` lists releases whose upper estimate is
@@ -159,7 +187,7 @@ def price(plan, threshold=estimate.THRESHOLD):
     plan["plan"] = key
     over = []
     for rel in plan["releases"]:
-        res = estimate.estimate(rel["tasks"], key)
+        res = estimate.estimate(rel["tasks"], key, learned)
         for task, row in zip(rel["tasks"], res["tasks"]):
             task["est_pct"] = row["est_pct"]
             task.setdefault("status", "todo")
@@ -236,7 +264,7 @@ def cmd_price(args):
     path, plan = _load_plan(args.project_dir)
     cfg = load_config(args.project_dir)
     threshold = threshold_for(cfg)
-    plan, over = price(plan, threshold)
+    plan, over = price(plan, threshold, learned_types(cfg))
     _write_json(path, plan)
     for rel in plan["releases"]:
         print(f"{rel['id']:<8} {_rng(rel['est_pct']):>14}  conf {rel['confidence']:>3}  {rel['title']}")

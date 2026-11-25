@@ -48,6 +48,10 @@ def _r(x):
     return round(float(x), 2)
 
 
+def _num(x):
+    return isinstance(x, (int, float)) and not isinstance(x, bool)
+
+
 # --- inputs -----------------------------------------------------------------
 
 def remaining_cost(release):
@@ -61,11 +65,11 @@ def remaining_cost(release):
     return [_r(lo), _r(hi)]
 
 
-def _priced(plan, threshold):
+def _priced(plan, threshold, cfg=None):
     """Use plan.json's prices. If any task is unpriced, price a copy in memory."""
     if all(isinstance(t.get("est_pct"), list) for r in plan["releases"] for t in r["tasks"]):
         return plan
-    priced, _ = planmod.price(copy.deepcopy(plan), threshold)
+    priced, _ = planmod.price(copy.deepcopy(plan), threshold, planmod.learned_types(cfg or {}))
     return priced
 
 
@@ -93,10 +97,15 @@ def compute(plan, cfg, reading, prev=None, now=None):
     threshold = planmod.threshold_for(cfg)
     mode = plan.get("mode", "strict")
     limited = plan.get("plan") != "api"
-    plan = _priced(plan, threshold)
+    plan = _priced(plan, threshold, cfg)
+    cal = cfg.get(planmod.CALIBRATION_KEY) if isinstance(cfg.get(planmod.CALIBRATION_KEY), dict) else {}
     ratio = cfg.get("weekly_per_session")
-    ratio = float(ratio) if isinstance(ratio, (int, float)) and not isinstance(ratio, bool) and ratio > 0 \
-        else WEEKLY_PER_SESSION
+    if not (_num(ratio) and ratio > 0):  # explicit config wins, then the learned ratio
+        ratio = cal.get("weekly_per_session") if cal.get("weekly_per_session_learned") else None
+    ratio = float(ratio) if _num(ratio) and ratio > 0 else WEEKLY_PER_SESSION
+    # §10.3: reserve the learned P80 external weekly usage (unknown -> None, nothing reserved)
+    ext = cal.get("external") if isinstance(cal.get("external"), dict) else {}
+    reserve = float(ext["reserve_pct"]) if ext.get("known") and _num(ext.get("reserve_pct")) else None
 
     reading = reading or {}
     s_pct = _effective_pct(reading.get("session_pct"), reading.get("session_resets_at"), now)
@@ -116,7 +125,7 @@ def compute(plan, cfg, reading, prev=None, now=None):
 
     # Session + weekly packing. Releases are placed greedily in order: a release
     # joins the open session if it fits what is left of it, else opens a new one.
-    week_cap = threshold  # external reserve (§10.3) arrives with v0.7
+    week_cap = threshold - (reserve or 0.0)
     placement = []
     week, session_idx = 1, 0
     session_left = threshold - (s_pct or 0.0)
@@ -167,7 +176,7 @@ def compute(plan, cfg, reading, prev=None, now=None):
         "usage_stale": bool(reading.get("stale")) if reading else None,
         "session": {"used_pct": None if s_pct is None else _r(s_pct),
                     "resets_at": reading.get("session_resets_at")},
-        "week": {"used_pct": None if w_pct is None else _r(w_pct), "external_reserved_pct": None,
+        "week": {"used_pct": None if w_pct is None else _r(w_pct), "external_reserved_pct": None if reserve is None else _r(reserve),
                  "resets_at": reading.get("weekly_resets_at"), "per_session_ratio": ratio},
         "current_release": current["id"] if current else None,
         "current_remaining_pct": cur_cost,
@@ -280,8 +289,10 @@ def render_section(sched):
     if sched["replan"]:
         out += ["", "Replan suggested at the next task boundary: "
                 + "; ".join(t["reason"] for t in sched["replan"]) + "."]
-    out += ["", f"Weekly cost is estimated as {sched['week']['per_session_ratio']:g}× the session cost "
-            "(cold start). External usage is not reserved yet."]
+    reserved = sched["week"].get("external_reserved_pct")
+    ext = (f"{reserved:g}% of the week is reserved for usage outside Claude Code."
+           if reserved is not None else "External usage is unknown, so nothing is reserved yet.")
+    out += ["", f"Weekly cost is estimated as {sched['week']['per_session_ratio']:.3g}× the session cost. {ext}"]
     return "\n".join(out)
 
 
@@ -317,7 +328,7 @@ def recompute(project_dir=".", reading=None, now=None, cache_path=None, use_acco
     line = notice(sched, prev)
     planmod._write_json(schedule_path(project_dir), sched)
     threshold = planmod.threshold_for(cfg)
-    text = planmod.render(_priced(plan, threshold), threshold, schedule=render_section(sched))
+    text = planmod.render(_priced(plan, threshold, cfg), threshold, schedule=render_section(sched))
     out = nav / "ROADMAP.md"
     try:
         old = out.read_text(encoding="utf-8")
