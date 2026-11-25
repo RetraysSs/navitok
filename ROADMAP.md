@@ -287,11 +287,11 @@ If a sprint spans more than one session, record each session separately.
 
 **Goal:** an empty but loadable plugin, plus the dogfood ledger.
 
-- [ ] `.claude-plugin/plugin.json` (name `navitok`, version `0.0.1`, description, author, license)
-- [ ] `.claude-plugin/marketplace.json` (single plugin at `./`)
-- [ ] `skills/navitok/SKILL.md` with frontmatter and a "work in progress" body
-- [ ] `LICENSE` (MIT), stub `README.md`, `CHANGELOG.md`, `.gitignore`, `tests/` with one smoke test
-- [ ] `docs/dogfood/ledger.jsonl` (empty) and `docs/dogfood/REPORT.md` (table header); record this sprint (§6.1)
+- [X] `.claude-plugin/plugin.json` (name `navitok`, version `0.0.1`, description, author, license)
+- [X] `.claude-plugin/marketplace.json` (single plugin at `./`)
+- [X] `skills/navitok/SKILL.md` with frontmatter and a "work in progress" body
+- [X] `LICENSE` (MIT), stub `README.md`, `CHANGELOG.md`, `.gitignore`, `tests/` with one smoke test
+- [X] `docs/dogfood/ledger.jsonl` (empty) and `docs/dogfood/REPORT.md` (table header); record this sprint (§6.1)
 
 **Accept:** `claude --plugin-dir .` lists the skill; `python3 -m unittest` (`python` on Windows) passes; the first dogfood record exists.
 **Commit:** `chore: plugin skeleton and dogfood ledger (v0.0.1)`
@@ -302,18 +302,18 @@ If a sprint spans more than one session, record each session separately.
 
 **Goal:** pin down where usage % and token counts can be read. Verification only, no assumptions.
 
-- [ ] Read the official docs and record findings in `docs/data-sources.md`:
+- [X] Read the official docs and record findings in `docs/data-sources.md`:
   - Hooks: https://code.claude.com/docs/en/hooks (available events; whether `UserPromptSubmit` and `SessionStart` output is added to context; whether `PreToolUse` supports input rewriting)
   - Statusline: https://code.claude.com/docs/en/statusline (stdin JSON fields; whether 5-hour/weekly usage % is included; how a plugin or user configures it)
   - Plugins reference: https://code.claude.com/docs/en/plugins-reference (manifest fields, command namespacing)
   - Costs/usage: https://code.claude.com/docs/en/costs
-- [ ] Evaluate candidate sources for the **account-wide %**:
+- [X] Evaluate candidate sources for the **account-wide %**:
   - (A) statusline stdin JSON, if it carries usage %
   - (B) Claude Code's local usage cache in `~/.claude.json` (reported by other tools as `cachedUsageUtilization`). **Undocumented**: verify that it exists, how fresh it is, and treat it as unstable
   - (C) user-reported `/usage` %
-- [ ] Inspect the transcript format in `~/.claude/projects/**/*.jsonl` (per-message `usage`: input, output, cache read/write) as the source of **local** usage
-- [ ] `scripts/usage_read.py`: first adapters, (1) total tokens for a session transcript and (2) the account-wide % from the best available source, with a fallback chain
-- [ ] Tests with synthetic or anonymised fixtures
+- [X] Inspect the transcript format in `~/.claude/projects/**/*.jsonl` (per-message `usage`: input, output, cache read/write) as the source of **local** usage
+- [X] `scripts/usage_read.py`: first adapters, (1) total tokens for a session transcript and (2) the account-wide % from the best available source, with a fallback chain
+- [X] Tests with synthetic or anonymised fixtures
 
 **Accept:** `docs/data-sources.md` rates every source for reliability, freshness and stability, and records the chosen primary + fallback order as a written decision.
 **Commit:** `feat(data): usage source spike and adapters (v0.1.0)`
@@ -324,11 +324,11 @@ If a sprint spans more than one session, record each session separately.
 
 **Goal:** record the raw material for learning.
 
-- [ ] Implement the `history.jsonl` schema (§10.5)
-- [ ] `scripts/ledger.py`: `append`, `read_all`, `last_session`, schema validation
-- [ ] `hooks/hooks.json`: `SessionStart` and `Stop` snapshots (account-wide % and local tokens)
-- [ ] Tests: tolerate corrupt lines; keep lines intact under concurrent writes
-- [ ] Migrate `docs/dogfood/ledger.jsonl` to the final schema if it changed
+- [X] Implement the `history.jsonl` schema (§10.5)
+- [X] `scripts/ledger.py`: `append`, `read_all`, `last_session`, schema validation
+- [X] `hooks/hooks.json`: `SessionStart` and `Stop` snapshots (account-wide % and local tokens)
+- [X] Tests: tolerate corrupt lines; keep lines intact under concurrent writes
+- [X] Migrate `docs/dogfood/ledger.jsonl` to the final schema if it changed
 
 **Accept:** opening and closing a real Claude Code session appends a record with both signals.
 **Commit:** `feat(ledger): session history recording (v0.2.0)`
@@ -339,11 +339,11 @@ If a sprint spans more than one session, record each session separately.
 
 **Goal:** safe estimates with little or no history.
 
-- [ ] `references/heuristics.md`: task type × size → cost range (as % of a session, with per-plan multipliers), **seeded from the dogfood ledger**
-- [ ] `references/plans.md`: Pro / Max 5x / Max 20x / API profiles, percentage-based. Anthropic does not publish fixed token limits, so make **no absolute token claims**
-- [ ] `scripts/estimate.py`: input = task list (type, size, file count); output = per-task range, total, confidence
-- [ ] Fixed threshold: **90%**
-- [ ] Tests: boundary values; unknown task type → widest range
+- [X] `references/heuristics.md`: task type × size → cost range (as % of a session, with per-plan multipliers), **seeded from the dogfood ledger**
+- [X] `references/plans.md`: Pro / Max 5x / Max 20x / API profiles, percentage-based. Anthropic does not publish fixed token limits, so make **no absolute token claims**
+- [X] `scripts/estimate.py`: input = task list (type, size, file count); output = per-task range, total, confidence
+- [X] Fixed threshold: **90%**
+- [X] Tests: boundary values; unknown task type → widest range
 
 **Accept:** `python3 scripts/estimate.py examples/tasks.json` (`python` on Windows) prints a readable table.
 **Commit:** `feat(estimate): cold-start estimator (v0.3.0)`
@@ -354,14 +354,14 @@ If a sprint spans more than one session, record each session separately.
 
 **Goal:** navitok's core promise. Turn a project into priced releases.
 
-- [ ] `SKILL.md` flow:
+- [X] `SKILL.md` flow:
   1. Ask for the plan (Pro / Max 5x / Max 20x / API)
   2. Ask for the mode: **strict** (never pay extra) or **flex** (continue on extra usage past the limit)
   3. Break the project into tasks and price them with `estimate.py`
   4. Group tasks into releases (v0.1, v0.2…) that each work on their own and end in a commit, with each release sized to fit one session under the threshold
-- [ ] Write `.navitok/plan.json` (§10.6) and `.navitok/config.json`
-- [ ] `references/roadmap-template.md` + a renderer that turns `plan.json` into `ROADMAP.md`
-- [ ] `commands/plan.md` → `/navitok:plan`
+- [X] Write `.navitok/plan.json` (§10.6) and `.navitok/config.json`
+- [X] `references/roadmap-template.md` + a renderer that turns `plan.json` into `ROADMAP.md`
+- [X] `commands/plan.md` → `/navitok:plan`
 
 **Accept:** given a sample project description, `/navitok:plan` writes `plan.json` and `ROADMAP.md`; no release's upper estimate exceeds the threshold.
 **Commit:** `feat(plan): release plan generation (v0.4.0)`
@@ -372,11 +372,11 @@ If a sprint spans more than one session, record each session separately.
 
 **Goal:** a schedule that is always current and costs nothing to keep current (§4.1–4.2).
 
-- [ ] `scripts/schedule.py`: plan + current usage + reset times → `schedule.json` (release → session/week, "fits today?", weekly packing; strict mode moves overflow to the next week, flex mode marks it as extra usage)
-- [ ] Tier 0: `UserPromptSubmit` hook recomputes the schedule before every prompt (no output unless something changed)
-- [ ] Tier 1: emit **one line** to context only when the fit status changes; never repeat an unchanged message
-- [ ] Tier 2: replan triggers (§10.4) are detected and offered at the next task boundary; Claude never replans mid-task
-- [ ] `ROADMAP.md` re-rendered by script after every recompute
+- [X] `scripts/schedule.py`: plan + current usage + reset times → `schedule.json` (release → session/week, "fits today?", weekly packing; strict mode moves overflow to the next week, flex mode marks it as extra usage)
+- [X] Tier 0: `UserPromptSubmit` hook recomputes the schedule before every prompt (no output unless something changed)
+- [X] Tier 1: emit **one line** to context only when the fit status changes; never repeat an unchanged message
+- [X] Tier 2: replan triggers (§10.4) are detected and offered at the next task boundary; Claude never replans mid-task
+- [X] `ROADMAP.md` re-rendered by script after every recompute
 
 **Accept:** simulated usage jumps (e.g. +15% from "outside") flip the fit status, produce exactly one Tier-1 line, and update `ROADMAP.md` without any model call; unchanged usage produces no output.
 **Commit:** `feat(schedule): live schedule with tiered updates (v0.5.0)`
@@ -387,10 +387,10 @@ If a sprint spans more than one session, record each session separately.
 
 **Goal:** the second half of "never cut off".
 
-- [ ] `scripts/handoff.py` + `HANDOFF.md` template: done, next task, half-edited files, last commit
-- [ ] `commands/checkpoint.md` → `/navitok:checkpoint` (clean commit + handoff)
-- [ ] `SKILL.md` rule: **before every task**, check `remaining ≥ task upper estimate + buffer` using `schedule.json`; if it fails, propose a checkpoint
-- [ ] `SessionStart` hook: if `HANDOFF.md` exists, add a short summary to context
+- [X] `scripts/handoff.py` + `HANDOFF.md` template: done, next task, half-edited files, last commit
+- [X] `commands/checkpoint.md` → `/navitok:checkpoint` (clean commit + handoff)
+- [X] `SKILL.md` rule: **before every task**, check `remaining ≥ task upper estimate + buffer` using `schedule.json`; if it fails, propose a checkpoint
+- [X] `SessionStart` hook: if `HANDOFF.md` exists, add a short summary to context
 
 **Accept:** in a new session, Claude can say "continuing v0.x, task 3" without re-exploring the repo.
 **Commit:** `feat(handoff): checkpoints and session resume (v0.6.0)`
