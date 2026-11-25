@@ -1,5 +1,5 @@
 {
-  "description": "navitok: session recorder (SessionStart/Stop/SessionEnd, silent) and schedule engine (UserPromptSubmit: recomputes .navitok/schedule.json, prints one line only when the fit status changes). Only in projects that have a .navitok/ folder.",
+  "description": "navitok: session recorder (SessionStart/Stop/SessionEnd, silent), handoff resume (SessionStart: one summary line when .navitok/HANDOFF.md exists, not on resume) and schedule engine (UserPromptSubmit: recomputes .navitok/schedule.json, prints one line only when the fit status changes). Only in projects that have a .navitok/ folder.",
   "hooks": {
     "SessionStart": [
       {

@@ -80,6 +80,15 @@ Source: https://code.claude.com/docs/en/hooks. The page is too long for one fetc
 - *(summary)* A `UserPromptSubmit` hook that times out is cancelled and its output discarded; the prompt still goes through.
 - **Observed locally (v0.5 acceptance, Git Bash, Windows):** `sh hooks/run.sh prompt` with UTF-8 stdin and a non-ASCII `cwd` printed nothing for unchanged usage and exactly one line when the fit status flipped. A live in-session check that the line reaches Claude's context is still pending (needs `/reload-plugins` in a project with `.navitok/plan.json`).
 
+### Hooks re-verification for v0.6: `SessionStart` context output (checked 2026-11-25)
+
+Source: https://code.claude.com/docs/en/hooks, SessionStart section. Read through a page summary, not verbatim; it agrees with the verbatim v0.5 quote above ("`SessionStart` ... adds plain-text stdout as context").
+
+- *(summary)* "A hook that only adds context can print it without building JSON, because Claude Code adds a SessionStart hook's plain-text stdout to Claude's context." The JSON alternative is `{"hookSpecificOutput": {"hookEventName": "SessionStart", "additionalContext": "...", "sessionTitle": "..."}}`; `additionalContext` is added "at the start of the conversation, before the first prompt". navitok uses plain stdout.
+- *(summary)* Sources: `startup`, `resume` (`--resume`, `--continue`, `/resume`), `clear` (`/clear`), `compact` (auto or manual), `fork`. Hooks run again on resume "so they can refresh their context". The page does not say whether context is injected after `compact`. navitok prints the summary for every source except `resume`, where the conversation is intact.
+- *(summary)* Plain stdout and `additionalContext` are capped at 10,000 characters (longer text goes to a file with a 2,000-character preview). navitok's summary is capped at 600.
+- **Observed locally (v0.6 acceptance, Git Bash, Windows):** in a synthetic project with a non-ASCII path, `claude -p --plugin-dir .` with all file tools disabled answered "v0.1 (Core), task 3 of 4, Storage to JSON, in progress, `storage.py` uncommitted" from the injected line alone. This also confirms that plain SessionStart stdout reaches context in `-p` mode. The recorder in the same hook still wrote its record.
+
 ## Statusline (checked 2026-11-24)
 
 Source: https://code.claude.com/docs/en/statusline. Status: **documented**.

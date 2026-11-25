@@ -1,6 +1,6 @@
 ---
 name: navitok
-description: Plans a project into releases that each fit one 5-hour Claude session under the user's usage limits, priced as ranges of session %. Use when the user asks to plan or break down a project around their Claude usage limits, or runs /navitok:plan. Keeps a live schedule and reacts to one-line navitok notices about fit and replans.
+description: Plans a project into releases that each fit one 5-hour Claude session under the user's usage limits, priced as ranges of session %. Use when the user asks to plan or break down a project around their Claude usage limits, or runs /navitok:plan or /navitok:checkpoint. Keeps a live schedule, checks before every task that it still fits, writes handoffs, and reacts to one-line navitok notices about fit and replans.
 ---
 
 # navitok: plan a project into session-sized releases
@@ -14,6 +14,8 @@ Scripts (Python 3.10+ standard library). Run them from the user's project root w
 - `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/plan.py" render`
 - `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/schedule.py" recompute [--session-pct N --weekly-pct N]`
 - `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/schedule.py" show`
+- `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/handoff.py" fit [--task <id>]`
+- `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/handoff.py" write [--note "<text>"]...`
 
 Cost table: `${CLAUDE_PLUGIN_ROOT}/skills/navitok/references/heuristics.md`. Plans: `${CLAUDE_PLUGIN_ROOT}/skills/navitok/references/plans.md`. Read them only if the user asks how estimates work.
 
@@ -58,6 +60,31 @@ A `UserPromptSubmit` hook runs `schedule.py` before every prompt. It writes `.na
 - **If the user gives you a `/usage` reading**, run `schedule.py recompute --session-pct <session> --weekly-pct <weekly>` so the schedule uses it.
 - To answer "where are we?", run `schedule.py show`. Do not compute fits yourself.
 
+## Before every task: fit check
+
+In a project with `.navitok/plan.json`, **before you start each task** of the plan, run `handoff.py fit` (add `--task <id>` if you are not doing the plan's next task). It checks `remaining ≥ task upper estimate + buffer` against `schedule.json`. Act on its first word:
+
+- `FITS`: start the task. Say nothing about it.
+- `NO-FIT`: do not start the task. Tell the user in one sentence and propose `/navitok:checkpoint`.
+- `UNKNOWN`: there is no usage reading. Ask the user once per session for `/usage`, run `schedule.py recompute --session-pct N --weekly-pct N`, then run `fit` again.
+- If the line says the reading is stale, continue on `FITS`, but say it once per session.
+
+Keep task statuses current in `plan.json`: set `"status": "doing"` when you start a task and `"done"` when it is finished and tested. The schedule, fit check and handoff read them.
+
+## Checkpoint flow
+
+On `/navitok:checkpoint`, or when the user agrees to one:
+
+1. **Stop at a clean point.** Do not start new work. If a task is half done, either finish its current small step or leave it as `doing`.
+2. **Update `plan.json`:** mark finished tasks `done`. Run `plan.py render`.
+3. **Commit** the work (`git status`, then one commit with a Conventional Commits message). Do not add `.navitok/` unless the user already tracks it. If nothing changed, skip the commit. If the project is not a git repository, skip this step and say so.
+4. **Write the handoff:** run `handoff.py write`, with one `--note` per thing the next session must know and cannot see in the files: a decision, a dead end, a half-finished idea, the user's note. Keep each note to one line. It writes `.navitok/HANDOFF.md` with what is done, the next task, any uncommitted (half-edited) files and the last commit.
+5. **Report** in two lines: the commit (or "nothing to commit") and the `Resume:` line the script printed.
+
+## Resuming
+
+When a session starts and `.navitok/HANDOFF.md` exists, a `navitok handoff` line is added to your context. Use it to say where work stands, for example "continuing v0.2, task 3", and continue from the next task. Run the fit check first. Read `.navitok/HANDOFF.md` only if you need the notes or the file list. Do not re-explore the repository to rediscover the state.
+
 ## Not available yet
 
-The per-task fit check, `/navitok:checkpoint`, handoffs, calibration from history, external-usage reserves and the statusline arrive in later navitok releases. If the user asks for them, say so. Do not invent usage numbers.
+Calibration from history, external-usage reserves, the adaptive threshold and the statusline arrive in later navitok releases. Until then the fit check uses the 90% cold-start threshold and a 2% buffer. If the user asks for those features, say so. Do not invent usage numbers.

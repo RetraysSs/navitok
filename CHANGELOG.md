@@ -3,6 +3,19 @@
 All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.6.0] - 2026-11-25
+
+### Added
+
+- `scripts/handoff.py`, handoff and safe stopping (ROADMAP v0.6). Deterministic, stdlib only, never calls the model.
+  - `fit`: the per-task fit check of §10.2, `remaining ≥ task upper estimate + buffer` with `buffer = max(2, max_step)`, read from `schedule.json`. It picks the plan's next task (first `doing`, else first `todo`) or `--task <id>`. Exit 0 `FITS`, 1 `NO-FIT` (propose a checkpoint), 3 `UNKNOWN` (no usage reading). A stale reading is checked but flagged. `max_step_pct` in `config.json` raises the buffer; until v0.7 it is 2%.
+  - `write`: renders `.navitok/HANDOFF.md` from `plan.json` and git. It holds a one-line `Resume:` summary, what is done in the current release, the next task (with its position, e.g. "task 3 of 5"), half-edited (uncommitted) files outside `.navitok/`, the last commit, and Claude's `--note` lines. It works outside git repositories too. Template: `skills/navitok/references/handoff-template.md`.
+  - `summary` / `hook`: a summary of at most 600 characters for `SessionStart`. It notes when `plan.json` has moved on since the handoff was written, and accepts hand-written handoffs.
+- `SessionStart` (`hooks/run.sh start`): after the silent recorder, prints the handoff summary to Claude's context when `.navitok/HANDOFF.md` exists. Silent on `resume`, without a handoff, and on errors. Always exits 0. The hook JSON is read once and passed to both scripts.
+- `/navitok:checkpoint` (`commands/checkpoint.md`): stop at a clean point, update task statuses, commit, write the handoff, report the resume line.
+- `SKILL.md`: run `handoff.py fit` before every task and act on `FITS` / `NO-FIT` / `UNKNOWN`. Keep task statuses (`doing`, `done`) current. Checkpoint and resume flows.
+- Tests for the fit boundary, buffer, unknown and stale readings, task selection, handoff rendering (git, no git, clean tree, non-ASCII paths), summary freshness and cap, hook sources, and `run.sh start` (recorder plus summary).
+
 ## [0.5.0] - 2026-11-24
 
 ### Added
