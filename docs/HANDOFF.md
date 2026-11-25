@@ -1,28 +1,32 @@
 # Handoff
 
-## Last sprint: v0.5 (Schedule engine + update tiers), done
+## Last sprint: v0.6 (Handoff and safe stopping), done
 
-- **Commit:** `43a96a3 feat(schedule): live schedule with tiered updates (v0.5.0)`.
-- **Tests:** 108/108 pass (32 new, `tests/test_schedule.py`).
-- **Acceptance:** a synthetic project in the scratchpad (non-ASCII path), driven through `sh hooks/run.sh prompt` with UTF-8 stdin and a statusline-format `usage_snapshot.json`. With session % going 66 → 66 → 81 → 81 → 81 → 2 → 2, the output was nothing, nothing, one "v0.1 no longer fits" line, nothing, nothing, one "fits again" line, nothing. `ROADMAP.md` followed each step. There were no model calls.
-- **Not yet verified live:** that the line actually reaches Claude's context in a real session (`/reload-plugins` in a project with `.navitok/plan.json`). The docs say plain stdout on exit 0 does (quoted verbatim in `docs/data-sources.md`).
+- **Commit:** `f148ae4 feat(handoff): checkpoints and session resume (v0.6.0)`.
+- **Tests:** 138/138 pass (30 new, `tests/test_handoff.py`).
+- **Acceptance:** a synthetic git project in the scratchpad (non-ASCII path). `handoff.py fit` gave FITS at 40% and NO-FIT at 86% (`v0.1-t3`, 7.5% + 2% buffer). `handoff.py write` produced the handoff, and `run.sh start` printed one summary line, nothing on `resume`. **Live:** `claude -p --plugin-dir <repo> --model haiku` with file tools disabled answered "v0.1 (Core), task 3 of 4, Storage to JSON, in progress, `storage.py` uncommitted" from the SessionStart line alone (~22k tokens). This also closes v0.5's open point: plain hook stdout does reach Claude's context.
 
-### What v0.5 built
+### What v0.6 built
 
-- `scripts/schedule.py`: `recompute` (Tier 0 + 1 + 2 detection, `--session-pct/--weekly-pct` override), `show`, `hook` (`UserPromptSubmit` entry point). Pure `compute()` + `notice()` for tests.
-- Packing is greedy and in order. A release joins the open session if its remaining upper estimate fits what is left of it, otherwise it opens the next one. The weekly cost is `session hi × 0.15` (cold start, from the dogfood ledger, `weekly_per_session` in config). In strict mode a week overflow moves the release to the next week in a fresh session. In flex mode it is marked `extra`.
-- The Tier-1 state is `status_key` (`<release>:fits|no-fit`) in `schedule.json`. A line is printed on a change to no-fit, or on a return from no-fit to fits for the same release. A release finishing, or usage being unknown, is silent.
-- Tier 2: `replan` list + `replan_key`, which is announced once per new trigger set. The baseline for the slip trigger (`baseline.final_week_ends_at`) resets when the plan's fingerprint changes (plan, mode, release and task ids). So a Claude replan does not trigger "slipped".
-- `hooks/run.sh prompt` passes stdout through (stderr dropped). The other modes stay fully silent.
-- `plan.py render/price` keep the last schedule section (a lazy import of `schedule`).
+- `scripts/handoff.py`:
+  - `fit`: §10.2 per-task check from `schedule.json`. Exit 0 FITS, 1 NO-FIT, 3 UNKNOWN. A stale reading is flagged, not blocked.
+  - `write`: `.navitok/HANDOFF.md` from plan statuses + git, with Claude's `--note` lines.
+  - `summary` / `hook`: SessionStart summary, at most 600 characters.
+  - Template: `skills/navitok/references/handoff-template.md`. Its `> Resume:` line is what the summary parses.
+- `hooks/run.sh start` reads stdin once and feeds both the recorder (silent) and `handoff.py hook`.
+- `/navitok:checkpoint` → SKILL.md "Checkpoint flow". SKILL.md now also has "Before every task: fit check" and "Resuming".
 
 ### Decisions to review
 
-- **The release fit uses the threshold only, without the §10.2 buffer.** The per-task check with `buffer = max(2, max_step)` belongs to v0.6.
-- **The 0.15 weekly/session ratio** comes from one maintainer's Pro data (≈34 session-% moved weekly by ≈5). The ROADMAP has no ratio. v0.7 should calibrate it.
-- **"Scope changed" (§10.4, 4th trigger)** is detected only as a config plan/mode mismatch with `plan.json`. Scope changes arrive through the user asking, and then Claude replans directly.
-- **External reserve** is `null` and 0 in packing until v0.7.
-- **Placement ignores calendar time**, that is, how many 5-hour sessions fit before the weekly reset. Only the % capacity is modelled.
+- **`max_step` is not learned yet**, so the buffer is `max(2, config.max_step_pct)`, i.e. 2% by default. v0.7 should write `max_step_pct` (or compute it from history).
+- **Stale readings do not block**, because the usage cache is effectively frozen and blocking would make every task ask for `/usage`. FITS on a stale reading is said once per session.
+- **No summary on `resume`** (the conversation is restored). It is printed on `startup`, `clear`, `compact` and `fork`.
+- **Task statuses are kept by Claude in `plan.json`** (SKILL rule). No script edits them, so the "Claude writes plan.json" rule holds.
+- The handoff is written *after* the checkpoint commit, so "last commit" is correct, and `.navitok/HANDOFF.md` itself is not committed unless the user tracks `.navitok/`.
+
+### New known issue (v0.5 schedule, found in v0.6, not fixed: out of scope)
+
+- **A manual `/usage` reading does not survive the next prompt.** `schedule.py recompute --session-pct N` writes it to `schedule.json`, but the `UserPromptSubmit` hook then recomputes from the (stale) usage cache and overwrites it. The fit check then reads the stale number again. Fix in v0.7 or v0.8: persist the manual reading (e.g. a `manual` snapshot in `.navitok/` with a timestamp) and let `account_usage` prefer it while it is fresher than the cache.
 
 ### Known issue (v0.2 recorder, not fixed: out of scope)
 
@@ -36,9 +40,9 @@
 - CLI output must be UTF-8 (`sys.stdout.reconfigure`), or the Bash tool and tests get garbled text on Windows (v0.4).
 - Because the usage cache is frozen, the `UserPromptSubmit` hook in a real session will usually see a **stale** reading (`usage_stale: true`) until v0.8's statusline snapshot exists. `schedule.py recompute --session-pct N --weekly-pct N` feeds a manual `/usage` reading (v0.5).
 
-## Next sprint: v0.6 (Handoff and safe stopping, `S`): not started, needs approval
+## Next sprint: v0.7 (Learning, external usage, adaptive threshold, `M`): not started, needs approval
 
-See ROADMAP §7 v0.6 and §10.2. Use `schedule.json` for the per-task fit check (`remaining ≥ task upper + buffer`). Re-verify the `SessionStart` context-output fields first. The known issue above (a start snapshot of 0 tokens) fits here too, but only if it stays in scope.
+See ROADMAP §7 v0.7, §10.1 and §10.3. It is an `M` sprint. Check the scope before starting and propose a split if it looks too big for one session. Inputs from v0.6: `config.max_step_pct` (buffer), `weekly_per_session` (0.15 cold start), the manual-reading issue above, and v0.2's 0-token start snapshot.
 
 ## Notes
 
