@@ -1,30 +1,36 @@
 # Handoff
 
-## Last sprint: v0.6 (Handoff and safe stopping), done
+## Last sprint: v0.7 (Learning, external usage, adaptive threshold), done
 
-- **Commit:** `f148ae4 feat(handoff): checkpoints and session resume (v0.6.0)`.
-- **Tests:** 138/138 pass (30 new, `tests/test_handoff.py`).
-- **Acceptance:** a synthetic git project in the scratchpad (non-ASCII path). `handoff.py fit` gave FITS at 40% and NO-FIT at 86% (`v0.1-t3`, 7.5% + 2% buffer). `handoff.py write` produced the handoff, and `run.sh start` printed one summary line, nothing on `resume`. **Live:** `claude -p --plugin-dir <repo> --model haiku` with file tools disabled answered "v0.1 (Core), task 3 of 4, Storage to JSON, in progress, `storage.py` uncommitted" from the SessionStart line alone (~22k tokens). This also closes v0.5's open point: plain hook stdout does reach Claude's context.
+- **Commit:** `ccb3b74 feat(learn): calibration, external usage and adaptive threshold (v0.7.0)`.
+- **Tests:** 160/160 pass (22 new, `tests/test_calibrate.py`), including the real dogfood ledger.
+- **Acceptance:** synthetic history through the real `run.sh start` hook in a scratchpad project:
+  - 20 low-variance sessions: threshold **96.5**, confidence 98.
+  - The same history with 10% web usage in 4 sessions: threshold and error spread unchanged (96.5, ±0.2), external ≈10% per web session, 3.9% reserved.
+  - High variance: threshold **90**, confidence 60.
+  - The cap holds at 98.
+  - `price` used the learned ranges, `/navitok:status` printed, and `fit` used the learned 2.1% buffer.
+- **Real dogfood ledger:** n=6 (v0.0 has no tokens, so "missing data"). sigma_err 3.5, max_step 2.27, threshold 90, confidence 20. %-per-weighted-token ≈8.0e-6. Learned weekly ratio 0.097 (cold start was 0.15). Learned per-type means are 2–3× below the cold-start table.
 
-### What v0.6 built
+### What v0.7 built
 
-- `scripts/handoff.py`:
-  - `fit`: §10.2 per-task check from `schedule.json`. Exit 0 FITS, 1 NO-FIT, 3 UNKNOWN. A stale reading is flagged, not blocked.
-  - `write`: `.navitok/HANDOFF.md` from plan statuses + git, with Claude's `--note` lines.
-  - `summary` / `hook`: SessionStart summary, at most 600 characters.
-  - Template: `skills/navitok/references/handoff-template.md`. Its `> Resume:` line is what the summary parses.
-- `hooks/run.sh start` reads stdin once and feeds both the recorder (silent) and `handoff.py hook`.
-- `/navitok:checkpoint` → SKILL.md "Checkpoint flow". SKILL.md now also has "Before every task: fit check" and "Resuming".
+- `scripts/calibrate.py` (`update`, `report --history`, `status`, `hook`) → `.navitok/calibration.json` (script-owned).
+- `scripts/external.py`: token weights, %-per-token fit (P25 of ratios, ≥5 sessions), external per session, weekday/weekly P80 profile, reserve.
+- `plan.load_config` attaches the calibration under `cfg["calibration"]`. `write_config` strips it. `threshold_for`, `learned_types`, `price(..., learned)` and `estimate(..., learned)` use it.
+- `schedule.compute`: `week_cap = threshold − reserve` and the learned weekly ratio. `handoff.fit_check`: buffer from the learned `max_step`.
+- `hook_session`: `plan_tasks` snapshot at start, `finished_tasks` diff at end → `tasks` + `release` in the history record.
+- `/navitok:status` → `calibrate.py status`.
 
 ### Decisions to review
 
-- **`max_step` is not learned yet**, so the buffer is `max(2, config.max_step_pct)`, i.e. 2% by default. v0.7 should write `max_step_pct` (or compute it from history).
-- **Stale readings do not block**, because the usage cache is effectively frozen and blocking would make every task ask for `/usage`. FITS on a stale reading is said once per session.
-- **No summary on `resume`** (the conversation is restored). It is printed on `startup`, `clear`, `compact` and `fork`.
-- **Task statuses are kept by Claude in `plan.json`** (SKILL rule). No script edits them, so the "Claude writes plan.json" rule holds.
-- The handoff is written *after* the checkpoint commit, so "last commit" is correct, and `.navitok/HANDOFF.md` itself is not committed unless the user tracks `.navitok/`.
+- **Small scope addition:** the recorder now attaches finished plan tasks. Without it, automatic history has `tasks: []` and calibration never learns for real users.
+- **sigma_err** is the weighted std of signed (local − estimate midpoint), not literally of |error|. A consistent bias is corrected by the learned per-type means and should not lower the threshold.
+- **Apportioning:** session local % is split by estimate midpoint. So per-type differences come only from the task mix, until per-task actuals exist (v0.12 or a per-task snapshot could add them).
+- **The token weights (1/5/0.1/1.25) are an assumption**, marked unstable in `docs/data-sources.md`.
+- **The weekly profile uses ISO weeks** and counts weekly-% gaps between records as external. In the dogfood ledger those gaps include unrecorded local chores.
+- **`ROADMAP.md` has uncommitted checkbox ticks** that I did not make. They are left as found for the maintainer.
 
-### New known issue (v0.5 schedule, found in v0.6, not fixed: out of scope)
+### Known issue (v0.5 schedule, found in v0.6, still open)
 
 - **A manual `/usage` reading does not survive the next prompt.** `schedule.py recompute --session-pct N` writes it to `schedule.json`, but the `UserPromptSubmit` hook then recomputes from the (stale) usage cache and overwrites it. The fit check then reads the stale number again. Fix in v0.7 or v0.8: persist the manual reading (e.g. a `manual` snapshot in `.navitok/` with a timestamp) and let `account_usage` prefer it while it is fresher than the cache.
 
@@ -40,9 +46,9 @@
 - CLI output must be UTF-8 (`sys.stdout.reconfigure`), or the Bash tool and tests get garbled text on Windows (v0.4).
 - Because the usage cache is frozen, the `UserPromptSubmit` hook in a real session will usually see a **stale** reading (`usage_stale: true`) until v0.8's statusline snapshot exists. `schedule.py recompute --session-pct N --weekly-pct N` feeds a manual `/usage` reading (v0.5).
 
-## Next sprint: v0.7 (Learning, external usage, adaptive threshold, `M`): not started, needs approval
+## Next sprint: v0.8 (Statusline, `S`): not started, needs approval
 
-See ROADMAP §7 v0.7, §10.1 and §10.3. It is an `M` sprint. Check the scope before starting and propose a split if it looks too big for one session. Inputs from v0.6: `config.max_step_pct` (buffer), `weekly_per_session` (0.15 cold start), the manual-reading issue above, and v0.2's 0-token start snapshot.
+See ROADMAP §7 v0.8. Re-verify the statusline docs first (stdin JSON, `rate_limits`, `refreshInterval`). The statusline snapshot (`.navitok/usage_snapshot.json`) is what finally gives fresh account-wide %, so it should also resolve the manual-reading issue above. Never replace an existing user statusline: wrap it, and only with explicit approval. The v0.2 0-token start snapshot is still open.
 
 ## Notes
 
