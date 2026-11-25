@@ -1,30 +1,31 @@
 # Handoff
 
-## Last sprint: v0.8 (Statusline), done
+## Last sprint: v0.9 (Terminal panel), done
 
-- **Commit:** `79a7837 feat(ui): statusline segment (v0.8.0)`.
-- **Tests:** 180/180 pass (20 new, `tests/test_statusline.py`).
-- **Acceptance:** a synthetic project in the scratchpad (non-ASCII path), with the generated command run through `sh -c` on synthetic stdin.
-  - Session 40 → 81 → 93% gave "fits" → "fits" → "no fit: checkpoint", in 123–148 ms each and with no model calls.
-  - The `UserPromptSubmit` hook then read the snapshot as `source: statusline, stale: false` and printed exactly one Tier-1 line at 93%.
-  - A wrapped user command kept its output first (`my-line 15:30 │ v0.1 …`).
-  - `setup` against the maintainer's real settings was a dry run only ("Current statusLine: null"); nothing was written.
-- **Not yet verified live:** a real Claude Code session with the statusline configured. That needs the maintainer's approval to run `statusline.py setup --apply`, which edits `~/.claude/settings.json`.
+- **Commit:** `7e06d3e feat(ui): live terminal panel (v0.9.0)`. The ROADMAP v0.9 bullets were updated in the same commit, at the maintainer's request.
+- **Tests:** 204/204 pass (24 new, `tests/test_watch.py`). They include a regression test for non-ASCII and real 8.3 short paths (`C:\Users\ÜNSAL` ↔ `C:\Users\NSAL~1`) across the panel, the statusline and both hooks. It runs for real on this machine, not skipped.
+- **Acceptance:**
+  - A 60-minute background soak (`--plain --interval 2 --duration 3600 --log`) on the synthetic scratchpad project ran 3602 s with 1799 frames, 0 errors, empty stderr and no error frames. Five rounds of schedule/snapshot/calibration rewrites ran underneath it. It started once and its log was read once at the end, as the maintainer asked.
+  - The soak ran the code from **before** the formatting polish (Python had already loaded the module). The polish changed formatting and labels only, and the tests cover it.
+  - The maintainer looked at the live panel in a real terminal: "looks good".
+- **Polish from that review:** local time zone, `used · stop at · left` wording, one decimal everywhere, session labels by local date and time.
 
-### What v0.8 built
+### What v0.9 built
 
-- `scripts/statusline.py`:
-  - default: the segment, plus the snapshot writer (on a change or once a minute).
-  - `--wrap CMD`: composes with the user's statusline (`sh -c`; sh first, because System32 `bash.exe` is WSL).
-  - `setup` / `remove [--settings P] [--apply]`: approval-gated settings change, with a backup.
-- `SKILL.md`: a "Statusline" section (show the change, ask, apply only on an explicit yes).
+- `scripts/watch.py`: `gather()` (local files; a fresh snapshot ≤10 min wins) → `frame()` (≤80×24, truncates).
+- **Display**, in order of preference:
+  - `run_curses` where `curses` exists.
+  - Otherwise `run_ansi`: `enable_vt()` via ctypes `SetConsoleMode(ENABLE_VIRTUAL_TERMINAL_PROCESSING)`, and `Keys` (`msvcrt` on Windows, `termios`/`select` elsewhere; no tty → plain sleep).
+  - `--once` plain.
+- **Options:** `--plain`, `--interval`, `--duration`, `--log`.
+- SKILL.md "Terminal panel" section and a README section with the alias suggestion.
 
 ### Decisions to review
 
-- **The statusline fit** uses the live session % + `current_remaining_pct[1]` ≤ `threshold` from `schedule.json`. It does not recompute or write the schedule; only the prompt hook does that.
-- **The command embeds absolute paths** (`sys.executable` and this plugin version's `statusline.py`). After a plugin update, `setup` must be run again. v0.13 (doctor) should detect a stale path.
-- **`is_navitok`** recognises its own command by `statusline.py` plus "navitok" in the path.
-- **The manual-reading issue** below is solved in practice once the statusline is configured, because the fresh snapshot wins. Without a statusline it is still open.
+- **The curses path is untested live here:** Windows' Python has no `_curses`. It is a thin loop around the same `frame()`. It should get a manual run on Linux or macOS before v1.0.
+- **Zone names:** the abbreviation comes from the OS. On Windows that is the long name (`GMT Standard Time`), because the stdlib has no tz database and inventing initials would be wrong (UK time is GMT/BST, not "GST").
+- **"Estimate vs actual for recent tasks"** shows recent *sessions* (estimate midpoint vs local actual), because per-task actuals are not recorded.
+- **README status line** still says v0.0.1. The full README rewrite belongs to v1.0, so it was left alone.
 
 ### Known issue (v0.5 schedule, found in v0.6, open only without a statusline)
 
@@ -42,9 +43,9 @@
 - CLI output must be UTF-8 (`sys.stdout.reconfigure`), or the Bash tool and tests get garbled text on Windows (v0.4).
 - Because the usage cache is frozen, the `UserPromptSubmit` hook in a real session will usually see a **stale** reading (`usage_stale: true`) until v0.8's statusline snapshot exists. `schedule.py recompute --session-pct N --weekly-pct N` feeds a manual `/usage` reading (v0.5).
 
-## Next sprint: v0.9 (Terminal panel, `S`): not started, needs approval
+## Next sprint: v0.10 (Superpowers integration, `S`): not started, needs approval
 
-See ROADMAP §7 v0.9. Stdlib `curses` only. On Windows, `curses` is not in the standard library (it needs the third-party `windows-curses`, which is not allowed), so check that first and propose a fallback (e.g. a plain refreshing text view) before building. The v0.2 0-token start snapshot is still open.
+See ROADMAP §7 v0.10. Integrate **only by detecting Superpowers and reading its output files**. Never copy its code, never write into its plan files (navitok's output goes under `.navitok/`), and say "works with", not "official". Check Superpowers' current plan-file format from its repository or docs first; do not write it from memory. Still open: the v0.2 0-token start snapshot, and the manual-reading issue when no statusline is configured.
 
 ## Notes
 
