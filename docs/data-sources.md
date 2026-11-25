@@ -114,6 +114,17 @@ Source: https://code.claude.com/docs/en/statusline. Status: **documented**.
 - Other fields: `session_id`, `transcript_path`, `model.id`, `effort.level`, `cost.total_cost_usd` (client-side estimate at list price), and `context_window.{total_input_tokens, total_output_tokens, current_usage.{input_tokens, output_tokens, cache_creation_input_tokens, cache_read_input_tokens}}`.
 - The docs do not say whether a plugin can provide a statusline itself. Configuring one means editing the user's settings, which requires **explicit approval**.
 
+### Statusline re-verification for v0.8 (checked 2026-11-25)
+
+Sources: https://code.claude.com/docs/en/statusline and https://code.claude.com/docs/en/plugins-reference, read through a fetch subagent. Items marked *(summary)* were not verbatim.
+
+- Stdin has `cwd`, `workspace.current_dir` and `workspace.project_dir`. *Verbatim:* `cwd` and `workspace.current_dir` "contain the same value; `workspace.current_dir` is preferred". `project_dir` "may differ from `cwd` if the working directory changes during a session". navitok looks for `.navitok/` in `project_dir`, then `current_dir`, then `cwd`.
+- `rate_limits.five_hour` / `.seven_day` = `{"used_percentage": 23.5, "resets_at": 1738425600}`. *Verbatim:* `resets_at` is "Unix epoch seconds".
+- Settings: `{"type": "command", "command": ..., "padding": N}`, plus `refreshInterval` (min 1) and `hideVimModeIndicator`. Multi-line output and ANSI colours are supported.
+- *(summary)* Output shows "only after the script exits with code 0". A non-zero exit or no output blanks the line, and a slow script blocks updates. No timeout value is given. navitok always exits 0 and runs a wrapped command with a 3 s timeout.
+- **A plugin cannot provide a statusline itself:** plugins-reference never mentions `statusLine`. Setup therefore edits the user's `~/.claude/settings.json`, only with explicit approval (`statusline.py setup` is a dry run; `--apply` writes and keeps a backup).
+- **Observed locally (v0.8 acceptance, Git Bash, Windows, synthetic stdin):** the generated command ran through `sh -c` in 123–148 ms with a non-ASCII path. The snapshot it wrote was picked up by the `UserPromptSubmit` hook as `source: statusline`, `stale: false`. **Not yet observed live** in a configured Claude Code session (the maintainer has no statusline configured, and setup needs approval).
+
 ## Costs / `/usage` (checked 2026-11-24)
 
 Source: https://code.claude.com/docs/en/costs. Status: **documented**.

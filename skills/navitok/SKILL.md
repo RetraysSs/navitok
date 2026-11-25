@@ -98,6 +98,19 @@ Before that, everything stays at the cold start, and external usage is reported 
 
 On `/navitok:status`, or when the user asks how much is left, run `calibrate.py status` and show its output as is. Never compute or adjust these numbers yourself.
 
+## Statusline
+
+navitok can show one line in Claude Code's statusline at zero token cost, e.g. `v0.3 ▓▓▓░░ 62% · fits · week 31% (ext 8%) · conf 40`. It also gives navitok fresh account-wide usage: the statusline receives the live 5-hour and weekly %, and saves them to `.navitok/usage_snapshot.json` for the hooks.
+
+Set it up **only when the user asks for it**, and change their settings **only after they approve the exact change**:
+
+1. Run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/statusline.py" setup`. It writes nothing. It shows the current and the new `statusLine` value of `~/.claude/settings.json`. An existing statusline is wrapped (its output stays first), never replaced.
+2. Show that to the user and ask whether to apply it.
+3. Only on an explicit yes, run the same command with `--apply`. It keeps a backup (`settings.json.navitok-backup`).
+4. To undo: `statusline.py remove` to show the change, then `remove --apply` after approval. This restores the user's own command.
+
+The command points at this plugin version's path, so after a plugin update run `setup` again (it shows the change, then needs approval). On Windows it needs Git Bash, like the hooks.
+
 ## Not available yet
 
-The statusline and the terminal panel arrive in later navitok releases. If the user asks for them, say so. Do not invent usage numbers.
+The terminal panel arrives in a later navitok release. If the user asks for it, say so. Do not invent usage numbers.

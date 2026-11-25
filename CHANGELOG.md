@@ -3,6 +3,19 @@
 All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.8.0] - 2026-11-25
+
+### Added
+
+- `scripts/statusline.py`, the statusline segment (ROADMAP v0.8). Zero tokens, standard library only, local files only.
+  - Prints one line from `schedule.json`, `calibration.json` and the live `rate_limits`, e.g. `v0.3 ▓▓▓░░ 62% · fits · week 31% (ext 8%) · conf 40`. The fit uses the live session % with the current release's remaining upper estimate.
+  - **Degrades gracefully:** a stale schedule reading is marked `~`. Before a schedule exists it shows "no schedule yet", and before calibration "cold start". Outside navitok projects it prints nothing. Broken input prints nothing. It always exits 0.
+  - **Fresh account-wide usage:** saves stdin's `rate_limits` to `.navitok/usage_snapshot.json`, only on a change or once a minute. Hooks and `schedule.py` already prefer this over the stale usage cache. With the statusline configured, the schedule and the fit check use live decimal percentages.
+  - **Compose, don't replace:** `--wrap CMD` runs the user's existing statusline with the same stdin, through `sh -c` (Git Bash on Windows), and appends navitok's segment to its last line after ` │ `. The user's line is kept if navitok has nothing to add or fails.
+  - `setup` / `remove`: a dry run that shows the exact `statusLine` change to `~/.claude/settings.json`. An existing statusline is wrapped, and `padding` / `refreshInterval` are kept. `--apply` writes the change only after the user approves, keeping `settings.json.navitok-backup`. `remove` restores the user's own command.
+- `SKILL.md`: statusline setup flow (show the change, ask, apply only on an explicit yes).
+- Tests for the segment, fit boundary, live vs. schedule readings, degradation, the snapshot round trip through `usage_read`, write throttling, wrapping (multi-line, failing command, outside projects), setup (dry run, add, idempotent, wrap and restore, invalid settings untouched), CLI speed and UTF-8, and the generated command under `sh`.
+
 ## [0.7.0] - 2026-11-25
 
 ### Added
