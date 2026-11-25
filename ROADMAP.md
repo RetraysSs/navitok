@@ -432,12 +432,15 @@ If a sprint spans more than one session, record each session separately.
 
 **Goal:** a live, full-screen view in a second terminal.
 
-- [ ] `scripts/watch.py` (stdlib `curses`): releases with status, current session and weekly bars, external usage, estimate vs actual for recent tasks, confidence, next reset time
-- [ ] Refreshes on an interval from local files only; `q` to quit; works in an 80×24 terminal
-- [ ] Plain-text fallback (`--once`) for terminals without curses support
+- [ ] `scripts/watch.py`: releases with status, current session and weekly bars, external usage, estimate vs actual for recent sessions, confidence, next reset time
+- [ ] Live display, stdlib only, in order of preference:
+  - `curses` where Python ships it (Linux, macOS).
+  - Otherwise an **ANSI full-screen redraw**. Windows' Python has no `_curses`, and `windows-curses` is a third-party package, so it is not allowed. On Windows, virtual-terminal processing is enabled via `ctypes` at startup, so ANSI also works in the legacy console, not only Windows Terminal / VS Code. `q` is read with `msvcrt` on Windows and `termios`/`select` elsewhere. `--plain` forces this mode.
+  - `--once`: one plain-text frame without escape codes, for any terminal or a pipe.
+- [ ] Refreshes on an interval from local files only (`plan.json`, `schedule.json`, `calibration.json`, the statusline's `usage_snapshot.json`; a fresh snapshot wins); `q` to quit; works in an 80×24 terminal and truncates cleanly in smaller ones; data errors are shown and logged (`--log`), never fatal
 - [ ] Entry point documented: `python3 <plugin>/scripts/watch.py` (`python` on Windows) (and a short alias suggestion)
 
-**Accept:** the panel runs next to a Claude Code session for an hour without errors and without any model call.
+**Accept:** the panel runs next to a Claude Code session for an hour without errors and without any model call (a 60-minute `--duration` soak with `--log`, plus a manual look in a real terminal).
 **Commit:** `feat(ui): live terminal panel (v0.9.0)`
 
 ---

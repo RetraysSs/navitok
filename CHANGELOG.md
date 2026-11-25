@@ -3,6 +3,29 @@
 All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.9.0] - 2026-11-25
+
+### Added
+
+- `scripts/watch.py`, the terminal panel (ROADMAP v0.9). Zero tokens, standard library only, local files only.
+  - **Shows:** releases with status, done/total and placement; session and weekly bars (threshold marked); next reset times; external usage and reserve; calibration confidence; the last sessions' estimate vs. local actual; replan suggestions.
+  - **Data:** a fresh statusline snapshot (≤ 10 min) wins over `schedule.json`.
+  - **Format:** the session line reads `45.0% used · stop at 96.5% · 51.5% left`, and every percentage and range uses one decimal.
+  - **Times** are shown in the machine's local zone with the zone name the OS provides: an abbreviation on POSIX (`CET`, `BST`); the long name on Windows (`GMT Standard Time`), because the stdlib has no tz database there; else `UTC±HH:MM`.
+  - **Recent sessions** without a release id are labelled by local date and time, so several sessions on one day stay distinguishable.
+  - **Display**, in order of preference:
+    1. `curses` where Python ships it.
+    2. An **ANSI full-screen redraw** elsewhere. Windows' Python has no `_curses`, and `windows-curses` is third-party, so it is not used. On Windows, virtual-terminal processing is enabled through `ctypes`, so it works in the legacy console too. `q` is read with `msvcrt` (Windows) or `termios`/`select`. `--plain` forces this mode.
+    3. `--once`: one plain frame without escape codes.
+  - **Sizing:** fits 80×24, truncates cleanly in smaller terminals, follows resizes.
+  - **Resilience:** data errors are shown on the panel and appended to `--log`, never fatal. `--duration S` stops after S seconds (soak tests), and `--interval S` sets the refresh (min 1, default 5).
+- `SKILL.md`, `README.md`: entry point and alias suggestion.
+- Tests for the 80×24 frame, truncation, tiny terminals, live vs. old snapshots, missing and broken data, the threshold bar, the ANSI loop (escapes, cursor restore, plain mode without VT, `q`, duration), error logging, zone names and local time, number format, session labels, the CLI (`--once` UTF-8, live mode with log), and a **regression test for non-ASCII and 8.3 short paths** (`C:\Users\ÜNSAL` vs `C:\Users\NSAL~1`) across the panel, statusline and hooks.
+
+### Changed
+
+- ROADMAP v0.9: the bullets describe the curses + ANSI fallback design.
+
 ## [0.8.0] - 2026-11-25
 
 ### Added

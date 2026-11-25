@@ -111,6 +111,14 @@ Set it up **only when the user asks for it**, and change their settings **only a
 
 The command points at this plugin version's path, so after a plugin update run `setup` again (it shows the change, then needs approval). On Windows it needs Git Bash, like the hooks.
 
+## Terminal panel
+
+For a live full-screen view in a second terminal (zero tokens, local files only), tell the user to run, from the project root:
+
+`python3 "<plugin path>/scripts/watch.py"` (`python` on Windows), `q` to quit. `--interval S` sets the refresh (default 5 s), and `--once` prints a single frame.
+
+Give them the real path: `${CLAUDE_PLUGIN_ROOT}` expanded. Suggest an alias such as `alias navitok-watch='python3 "<plugin path>/scripts/watch.py"'`. Do not run the live panel yourself: it is for the user's own terminal.
+
 ## Not available yet
 
-The terminal panel arrives in a later navitok release. If the user asks for it, say so. Do not invent usage numbers.
+Superpowers and Graphify integration, output trimming and `/navitok:setup` arrive in later navitok releases. If the user asks for them, say so. Do not invent usage numbers.

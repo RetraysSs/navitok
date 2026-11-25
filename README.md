@@ -13,6 +13,18 @@ git clone <this-repo> navitok
 claude --plugin-dir ./navitok
 ```
 
+## Terminal panel
+
+A live view of your releases, session and weekly usage, external usage and calibration, for a second terminal. It costs zero tokens and reads local files only.
+
+```bash
+python3 <plugin>/scripts/watch.py            # live, q to quit (python on Windows)
+python3 <plugin>/scripts/watch.py --once     # one plain frame
+alias navitok-watch='python3 <plugin>/scripts/watch.py'
+```
+
+It uses `curses` where available. Otherwise, on Windows for example, it redraws with ANSI escape codes, also in the legacy console.
+
 ## Development
 
 Scripts use the Python 3.10+ standard library only.
