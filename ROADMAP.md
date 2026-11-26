@@ -283,7 +283,7 @@ If a sprint spans more than one session, record each session separately.
 | v0.13 | `/navitok:setup` (doctor) | S |
 | v1.0 | Release | M |
 
-> Model and agent optimization is deliberately **not** in v1.0. It is its own release, v1.2 (§8). The ledger records the model and effort of every session from v0.2 onward, so by the time v1.2 starts there is real per-model data to learn from.
+> Model and agent optimization is deliberately **not** in v1.0. It is its own release, v1.3 (§8). The ledger records the model and effort of every session from v0.2 onward, so by the time v1.3 starts there is real per-model data to learn from.
 
 ---
 
@@ -405,13 +405,13 @@ If a sprint spans more than one session, record each session separately.
 
 **Goal:** estimates that improve with use, honest accounting of usage outside Claude Code, and a controlled climb from 90% toward 98%.
 
-- [ ] `scripts/external.py`: external usage = account-wide change − local change (§10.3); per-day and per-week profile of the user's external usage
-- [ ] `scripts/calibrate.py`: per-task-type mean and standard deviation; estimation error computed on **local** usage only
-- [ ] Outlier guard: flag and down-weight sessions that break assumptions (debugging spirals, sessions with large unexplained external usage, sessions with missing data)
-- [ ] Adaptive threshold (§10.1) and confidence score; recent sessions weigh more; records after a model or plan change are down-weighted
-- [ ] `schedule.py` reserves the learned external usage in weekly packing
-- [ ] `commands/status.md` → `/navitok:status` (remaining, threshold, confidence, external usage this week, next release)
-- [ ] Test against synthetic history **and** the real dogfood ledger
+- [X] `scripts/external.py`: external usage = account-wide change − local change (§10.3); per-day and per-week profile of the user's external usage
+- [X] `scripts/calibrate.py`: per-task-type mean and standard deviation; estimation error computed on **local** usage only
+- [X] Outlier guard: flag and down-weight sessions that break assumptions (debugging spirals, sessions with large unexplained external usage, sessions with missing data)
+- [X] Adaptive threshold (§10.1) and confidence score; recent sessions weigh more; records after a model or plan change are down-weighted
+- [X] `schedule.py` reserves the learned external usage in weekly packing
+- [X] `commands/status.md` → `/navitok:status` (remaining, threshold, confidence, external usage this week, next release)
+- [X] Test against synthetic history **and** the real dogfood ledger
 
 **Accept:** with 20 low-variance synthetic sessions the threshold rises above 90%; with high variance it stays at 90–92%; it never exceeds 98%. Synthetic web usage is classified as external and leaves estimation error unchanged.
 **Commit:** `feat(learn): calibration, external usage and adaptive threshold (v0.7.0)`
@@ -422,10 +422,10 @@ If a sprint spans more than one session, record each session separately.
 
 **Goal:** always-visible progress at zero token cost.
 
-- [ ] `scripts/statusline.py`: one line from `schedule.json` and the usage source, e.g. `v0.3 ▓▓▓▓░ 62% · fits · week 31% (ext 8%) · conf 40`
-- [ ] Must be fast (reads local files only, no network) and degrade gracefully when data is missing
-- [ ] **Compose, don't replace:** if the user already has a statusline, offer a wrapper that appends navitok's segment to the user's existing output
-- [ ] Configuration is written to the user's settings **only with explicit approval** (method per v0.1 findings)
+- [X] `scripts/statusline.py`: one line from `schedule.json` and the usage source, e.g. `v0.3 ▓▓▓▓░ 62% · fits · week 31% (ext 8%) · conf 40`
+- [X] Must be fast (reads local files only, no network) and degrade gracefully when data is missing
+- [X] **Compose, don't replace:** if the user already has a statusline, offer a wrapper that appends navitok's segment to the user's existing output
+- [X] Configuration is written to the user's settings **only with explicit approval** (method per v0.1 findings)
 
 **Accept:** the line updates as usage changes, costs no tokens, and an existing custom statusline keeps working.
 **Commit:** `feat(ui): statusline segment (v0.8.0)`
@@ -436,13 +436,13 @@ If a sprint spans more than one session, record each session separately.
 
 **Goal:** a live, full-screen view in a second terminal.
 
-- [ ] `scripts/watch.py`: releases with status, current session and weekly bars, external usage, estimate vs actual for recent sessions, confidence, next reset time
-- [ ] Live display, stdlib only, in order of preference:
+- [X] `scripts/watch.py`: releases with status, current session and weekly bars, external usage, estimate vs actual for recent sessions, confidence, next reset time
+- [X] Live display, stdlib only, in order of preference:
   - `curses` where Python ships it (Linux, macOS).
   - Otherwise an **ANSI full-screen redraw**. Windows' Python has no `_curses`, and `windows-curses` is a third-party package, so it is not allowed. On Windows, virtual-terminal processing is enabled via `ctypes` at startup, so ANSI also works in the legacy console, not only Windows Terminal / VS Code. `q` is read with `msvcrt` on Windows and `termios`/`select` elsewhere. `--plain` forces this mode.
   - `--once`: one plain-text frame without escape codes, for any terminal or a pipe.
-- [ ] Refreshes on an interval from local files only (`plan.json`, `schedule.json`, `calibration.json`, the statusline's `usage_snapshot.json`; a fresh snapshot wins); `q` to quit; works in an 80×24 terminal and truncates cleanly in smaller ones; data errors are shown and logged (`--log`), never fatal
-- [ ] Entry point documented: `python3 <plugin>/scripts/watch.py` (`python` on Windows) (and a short alias suggestion)
+- [X] Refreshes on an interval from local files only (`plan.json`, `schedule.json`, `calibration.json`, the statusline's `usage_snapshot.json`; a fresh snapshot wins); `q` to quit; works in an 80×24 terminal and truncates cleanly in smaller ones; data errors are shown and logged (`--log`), never fatal
+- [X] Entry point documented: `python3 <plugin>/scripts/watch.py` (`python` on Windows) (and a short alias suggestion)
 
 **Accept:** the panel runs next to a Claude Code session for an hour without errors and without any model call (a 60-minute `--duration` soak with `--log`, plus a manual look in a real terminal).
 **Commit:** `feat(ui): live terminal panel (v0.9.0)`
@@ -453,10 +453,10 @@ If a sprint spans more than one session, record each session separately.
 
 **Goal:** brainstorming → writing-plans → **navitok** → executing-plans.
 
-- [ ] `scripts/integrations/superpowers.py`: detect installation; read `docs/superpowers/plans/*.md`
-- [ ] Convert plan tasks into `plan.json` releases with cost ranges. **Never modify the original plan file**
-- [ ] If subagent-driven-development is in use, apply a cost multiplier; on Pro + strict, recommend inline execution
-- [ ] Without Superpowers, the v0.4 flow still works (tested)
+- [X] `scripts/integrations/superpowers.py`: detect installation; read `docs/superpowers/plans/*.md`
+- [X] Convert plan tasks into `plan.json` releases with cost ranges. **Never modify the original plan file**
+- [X] If subagent-driven-development is in use, apply a cost multiplier; on Pro + strict, recommend inline execution
+- [X] Without Superpowers, the v0.4 flow still works (tested)
 
 **Accept:** a sample Superpowers plan file yields a versioned roadmap and schedule.
 **Commit:** `feat(integrations): superpowers plan ingestion (v0.10.0)`
@@ -467,10 +467,10 @@ If a sprint spans more than one session, record each session separately.
 
 **Goal:** cheaper reading, and file-scope data for the estimator.
 
-- [ ] `scripts/integrations/graphify.py`: detect `graphify-out/` and `GRAPH_REPORT.md`
-- [ ] Task → relevant nodes → estimated files/lines touched (fed into `estimate.py`)
-- [ ] No graph yet: add a **"build the map"** release and price it separately
-- [ ] Ledger field `helpers: ["graphify", ...]` so calibration keeps helped and unhelped sessions apart
+- [X] `scripts/integrations/graphify.py`: detect `graphify-out/` and `GRAPH_REPORT.md`
+- [X] Task → relevant nodes → estimated files/lines touched (fed into `estimate.py`)
+- [X] No graph yet: add a **"build the map"** release and price it separately
+- [X] Ledger field `helpers: ["graphify", ...]` so calibration keeps helped and unhelped sessions apart
 
 **Accept:** synthetic history with and without Graphify stays separate; estimates come from the right group.
 **Commit:** `feat(integrations): graphify scope estimation (v0.11.0)`
@@ -481,10 +481,10 @@ If a sprint spans more than one session, record each session separately.
 
 **Goal:** stop test and build output from bloating the context.
 
-- [ ] Choose the mechanism based on v0.1 findings (e.g. a `PreToolUse` hook that pipes Bash output through a trimmer)
-- [ ] Trimmer keeps error lines and the last N lines, collapses repeats, and saves the full output to `.navitok/logs/`
-- [ ] On/off via `config.json`; **off by default** (enabled in `/navitok:setup`)
-- [ ] Coexistence test with Graphify's `PreToolUse` hook
+- [X] Choose the mechanism based on v0.1 findings (e.g. a `PreToolUse` hook that pipes Bash output through a trimmer)
+- [X] Trimmer keeps error lines and the last N lines, collapses repeats, and saves the full output to `.navitok/logs/`
+- [X] On/off via `config.json`; **off by default** (enabled in `/navitok:setup`)
+- [X] Coexistence test with Graphify's `PreToolUse` hook
 
 **Accept:** a long test run is trimmed without losing the error message; Graphify's hook still works.
 **Commit:** `feat(hooks): optional output trimming (v0.12.0)`
@@ -502,10 +502,10 @@ If a sprint spans more than one session, record each session separately.
 
 **Goal:** one command that shows everything.
 
-- [ ] `scripts/doctor.py`: Superpowers, Graphify, Python version, usage sources (which one is active), statusline state, `.navitok/` state
-- [ ] Table output (✅ / ❌, why it helps, install or enable command)
-- [ ] Never auto-install or auto-configure: show the commands and run them only on explicit approval
-- [ ] First-run wizard: plan + mode + statusline + trimming preference → `config.json`
+- [X] `scripts/doctor.py`: Superpowers, Graphify, Python version, usage sources (which one is active), statusline state, `.navitok/` state
+- [X] Table output (✅ / ❌, why it helps, install or enable command)
+- [X] Never auto-install or auto-configure: show the commands and run them only on explicit approval
+- [X] First-run wizard: plan + mode + statusline + trimming preference → `config.json`
 
 **Accept:** on a clean machine `/navitok:setup` runs without errors and reports gaps correctly.
 **Commit:** `feat(setup): doctor and first-run wizard (v0.13.0)`
@@ -516,13 +516,15 @@ If a sprint spans more than one session, record each session separately.
 
 **Goal:** ready to share.
 
-- [ ] README: what it does, install (§2.6), a 60-second example, statusline and panel screenshots/GIF, FAQ
-- [ ] README disclaimer: *"Estimates rely on personal calibration and are not guarantees. Anthropic's limits may change. Usage from other devices is detected only through account-wide numbers."*
-- [ ] README "Built with navitok" section: sprint count and the estimate-accuracy trend from `docs/dogfood/REPORT.md`
-- [ ] "Works with Superpowers & Graphify" section. Never call it "official"; note that third-party tools belong to their owners
-- [ ] `examples/`: one Pro-strict and one Max-flex sample roadmap
-- [ ] Version `1.0.0`, git tag `v1.0.0`, GitHub release notes
-- [ ] Install test through the marketplace (§2.6)
+- [X] README: what it does, install (§2.6), a 60-second example, FAQ
+- [X] README statusline and panel output as real text output
+- [ ] README statusline and panel screenshots/GIF: moved to 1.0.2
+- [X] README disclaimer: *"Estimates rely on personal calibration and are not guarantees. Anthropic's limits may change. Usage from other devices is detected only through account-wide numbers."*
+- [X] README "Built with navitok" section: sprint count and the estimate-accuracy trend from `docs/dogfood/REPORT.md`
+- [X] "Works with Superpowers & Graphify" section. Never call it "official"; note that third-party tools belong to their owners
+- [X] `examples/`: one Pro-strict and one Max-flex sample roadmap
+- [X] Version `1.0.0`, git tag `v1.0.0`, GitHub release notes
+- [X] Install test through the marketplace (§2.6)
 
 **Accept:** a new user can read the README, install in 5 minutes and run `/navitok:plan`.
 **Commit:** `release: v1.0.0`
@@ -535,38 +537,82 @@ If a sprint spans more than one session, record each session separately.
 
 ## 8. After v1.0
 
-| Version | Topic |
-|---|---|
-| v1.1 | HTML dashboard: local page with release timeline, estimate-vs-actual chart, learning curve and external-usage trend (reads the same local files, zero tokens) |
-| v1.2 | **Model & agent optimization** (see below) |
-| v1.3 | Opt-in, anonymous community calibration (**off by default**) for a better cold start |
-| v1.4 | Team mode: shared roadmaps for Team/Enterprise plans |
+| Version | Topic | Size |
+|---|---|---|
+| 1.0.2 | **Patch for current users** (see below): statusline survives plugin updates, statusline wrapper uses the Git Bash lookup, the remaining 1.0.0 limitations, and CI. Comes first, so CI is in place before the v1.1 calibration changes | S–M |
+| v1.1 | **Learning across projects** (see below): four one-session sprints, v1.1.0–v1.1.3 | 4 × S/M |
+| v1.2 | HTML dashboard: local page with release timeline, estimate-vs-actual chart, learning curve and external-usage trend (reads the same local files, zero tokens) | M |
+| v1.3 | **Model & agent optimization** (see below): v1.3.0–v1.3.3 | 4 × S/M |
+| v1.4 | Opt-in, anonymous community calibration (**off by default**) for a better cold start | M |
+| v1.5 | Team mode: shared roadmaps for Team/Enterprise plans | M |
+| ongoing | Measure the Max 5x / Max 20x multipliers from Max users' anonymised ledger numbers (not tied to a version) | — |
 
-### v1.2 — Model & agent optimization
+### 1.0.2 — Patch for current users `S–M`
+
+**Goal:** fixes that affect people using 1.0.x now, without waiting for v1.1, and CI in place before the v1.1 calibration changes. One session under §5. If the estimate does not fit, split off the low-priority images item first; if it still does not fit, move CI to 1.0.3. Never widen the session.
+
+- [ ] **Statusline survives plugin updates.** The statusline setting points at the installed plugin version's folder, so an update can break it. Either a stable launcher path that does not change with the version, or a one-line `SessionStart` notice when the configured version differs from the running one. Setup is re-run only after the user approves the shown change.
+- [ ] **Statusline wrapper uses the Git Bash lookup.** `statusline.py run_wrapped` still finds the shell with `which("sh") or which("bash")`. Reuse `doctor.find_shell` (1.0.1) so a wrapped statusline works where Git Bash is not on `PATH`.
+- [ ] **Remaining 1.0.0 limitations.** (a) Without a statusline, a manual `/usage` reading is overwritten by the stale usage cache at the next prompt: persist it with a timestamp and prefer it while it is fresher. (b) When `/navitok:plan` creates `.navitok/` mid-session, that first session is recorded with 0 local tokens: take the start snapshot from the transcript's first message.
+- [ ] **CI.** GitHub Actions runs `python -m unittest discover -s tests -v` on Windows, Linux and macOS (Python 3.10 and the latest 3.x) on every push and PR. On Linux and macOS a curses smoke test starts `watch.py` in a pseudo-terminal and quits it. No new dependencies in the plugin.
+- [ ] **README screenshots/GIF and a plugin icon** (512–2048 px square PNG). Low priority: the first thing split off if the sprint does not fit.
+
+### v1.1 — Learning across projects
+
+**Goal:** a new project starts from what navitok has already learned about *this user*, not only from the maintainer's seed. Today calibration is per project (`.navitok/calibration.json`), and every new project starts from the built-in seed (v0.0–v0.2 dogfood records: one maintainer, Pro, one project). Planned as four one-session sprints, using the same rules as §5. Everything stays local.
+
+**v1.1.0 — Seed from all dogfood records `S`**
+- [ ] Rebuild the cold-start seed from every record in `docs/dogfood/ledger.jsonl` (18 records, v0.0–v1.0.1, at the time of writing), not only v0.0–v0.2
+- [ ] Exclude or down-weight noisy records, e.g. v1.0b (parallel claude.ai use and a second Claude Code session of unknown size, plus a long un-restarted context). The rule is written down and applied by script, not decided per record by hand
+- [ ] Account for the ±1 resolution of `/usage`: treat each manual actual as an interval, so 1–2% sprints do not dominate the ratios (§10.9)
+- [ ] `references/heuristics.md` and `estimate.py` stay in sync; a test fails when they differ
+- [ ] The seed label ("one maintainer, Pro, one project") and the README numbers are updated
+
+**v1.1.1 — User profile and project correction `M`**
+- [ ] Two layers: a user-level profile in `~/.navitok/profile.json`, learned from all projects (per-type ranges, stop threshold, external-usage profile), plus a small per-project correction in `.navitok/calibration.json`
+- [ ] Each project's learned sessions feed the profile from its `history.jsonl`. External usage is never counted as error (§4.3)
+- [ ] One-time import of existing project histories into the profile, shown first and run only on approval. The project files are read, never changed
+- [ ] Local only: no network, nothing uploaded. Per-project opt-out (`"profile": false` in `.navitok/config.json`): that project neither reads nor feeds the profile
+- [ ] Hooks stay fast: the profile is a small precomputed file, rebuilt at `SessionStart`, never on every prompt
+
+**v1.1.2 — Blending, not overwriting `S`**
+- [ ] The seed is a prior. The user's data gains weight with every learned session until it takes over (§10.9). This replaces today's switch from cold start to learned at `MIN_TYPE_SAMPLES`
+- [ ] Outliers cannot swing an estimate: clamped per-session ratios, a cap on any one session's weight, and the existing outlier guard (§10.1)
+- [ ] Tests: a synthetic history moves smoothly from the seed to the user's numbers, and one extreme session moves a range by a bounded amount only
+
+**v1.1.3 — Where an estimate comes from `S`**
+- [ ] `/navitok:status`, the panel and `.navitok/ROADMAP.md` show the source of each estimate (`seed`, `profile` or `project`) with each layer's weight, e.g. `profile 70% · seed 30%`
+- [ ] The statusline keeps `cold start` / `conf N` and adds the source only where it fits on one line
+
+### v1.3 — Model & agent optimization
 
 **Goal:** tell the user not only *how much* a release costs, but *how to make it cheaper*: which model for which task, when to use subagents, and when to hand work to another agent. Planned as four one-session sprints, using the same rules as §5.
 
-**v1.2.0 — Model routing `S`**
+**v1.3.0 — Model routing `S`**
 - [ ] Each task in `plan.json` gets `suggested_model` + `suggested_effort` (rule-based on task type and size, e.g. search/rename/docs → lighter model, architecture/hard debugging → strongest model)
 - [ ] `/navitok:status`, the statusline and the panel show "suggested for this task: X"
 - [ ] Suggestions are never forced; the user always chooses
 
-**v1.2.1 — Per-model calibration and limits `M`**
+**v1.3.1 — Per-model calibration and limits `M`**
 - [ ] Calibration splits cost by model, using the ledger data collected since v0.2
 - [ ] Release-level comparison: "v0.4 with model A ≈ 30–40%, with model B ≈ 55–65% of a session"
 - [ ] Per-model weekly buckets where a plan has model-specific weekly limits (verify current plan rules against official docs); when one bucket runs low, propose moving remaining work to another model
 - [ ] Low confidence is shown honestly for models the user rarely uses
 
-**v1.2.2 — Agent strategy `S`**
+**v1.3.2 — Agent strategy `S`**
 - [ ] Per-release strategy suggestion: which work goes to a subagent (and on which model), and which stays in the main session
 - [ ] Parallel vs serial advice by plan and mode (e.g. Pro + strict → serial; Max → parallel when the quota allows)
 - [ ] `schedule.py` accounts for the faster burn rate of parallel agents
 - [ ] Offer project-specific subagent templates for `.claude/agents/`, created **only with explicit approval** (verify current subagent fields, including per-agent model selection, against official docs)
 
-**v1.2.3 — Other agents `S`**
+**v1.3.3 — Other agents `S`**
 - [ ] Plan profiles for Codex / Cursor / Gemini CLI in `references/plans.md` (open to contributions)
 - [ ] Cross-agent suggestions: "this release's mechanical tasks fit your Codex quota better", produced as a handoff the user runs, never executed automatically
 - [ ] External-usage accounting stays correct when the user works across several agents
+
+### Ongoing — Measure Max 5x / 20x
+
+Not a version: it runs alongside the releases above. The multipliers in `references/plans.md` are nominal (0.2 and 0.05). Invite Max users, through a GitHub issue template, to share anonymised ledger numbers (percentages, token counts, task types; no prompts, code or personal data). Update the multipliers and their confidence once enough records exist.
 
 ---
 
@@ -742,3 +788,31 @@ When per-task actuals are unknown (manual source), set `actual_pct` to `null` an
   "trim_output": false
 }
 ```
+
+### 10.9 Blending seed, profile and project (draft, v1.1)
+
+Three layers, each the prior for the next: **seed** (built-in, `heuristics.md`) → **profile** (`~/.navitok/profile.json`, all of the user's projects) → **project** (`.navitok/calibration.json`). Per task type, each layer learns a ratio `r = local actual / seed estimate midpoint`.
+
+```
+# per learned session i (outliers already down-weighted, §10.1)
+r_i     = clamp(local_actual_i / seed_mid_i, 1/3, 3)   # one session cannot move far
+w_i     = recency_i × change_i × outlier_i × res_i
+res_i   = min(1, a_i / 3)          # manual /usage is ±1: 1–2% sessions count less
+w_i     = min(w_i, 0.25 × Σw)      # no session carries more than a quarter (once n ≥ 4)
+
+# profile layer (all projects)
+n_p     = Σ w_i                                   # over all projects
+r_p     = exp(Σ w_i · log r_i / n_p)              # weighted geometric mean
+alpha_p = n_p / (n_p + K_PROFILE)                 # K_PROFILE = 5
+ratio_p = exp(alpha_p · log r_p)                  # = 1 (seed) at n_p = 0
+
+# project correction (this project only, relative to the profile)
+r_j     = exp(Σ_project w_i · log(r_i / ratio_p) / n_j)
+alpha_j = n_j / (n_j + K_PROJECT)                 # K_PROJECT = 5
+corr_j  = clamp(exp(alpha_j · log r_j), 0.5, 2)
+
+estimate = seed_range × ratio_p × corr_j
+weights  = seed (1 − alpha_p) · profile alpha_p (1 − alpha_j) · project alpha_p · alpha_j
+```
+
+With no data the estimate is the seed. Each learned session moves it a little; after about `K` sessions the user's data carries half the weight, and from there it takes over. Range width follows the same weights: the seed's relative width shrinks toward the user's observed spread, but never below ±20% of the midpoint. While a project has fewer than `MIN_N` learned sessions, the stop threshold (§10.1) and the external-usage profile (§10.3) come from the profile. The constants are starting values, tuned against the dogfood ledger in v1.1.2.

@@ -206,7 +206,7 @@ Only field names and token counts were inspected. Transcripts hold prompt text, 
 - **Duplicates:** one API response is written as **several assistant records** (one per content block) that share `message.id` and carry **identical** `usage`. In this session, 71 records held 37 unique ids. **Totals must deduplicate by `message.id`**, or they are inflated ~2×.
 - **Subagents:** subagent transcripts live in `<session_id>/subagents/agent-<id>.jsonl` (with a `.meta.json`), not in the main file. A session total must include them.
   - They can run a **different model**. In this session the web-fetch subagents ran on a lighter model than the main session.
-  - Per-model totals are therefore needed (v1.2).
+  - Per-model totals are therefore needed (v1.3).
 - **Finer-grained cost:** every assistant record has a `timestamp`, so tokens can be summed for any time window, e.g. between two `/usage` readings or per task. This is the finer-grained local signal for the dogfood ledger.
   - It is **local only**, so it excludes claude.ai and other machines.
   - Converting tokens to session % needs calibration (ROADMAP §10.3).
