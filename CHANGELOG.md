@@ -3,6 +3,16 @@
 All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.13.0] - 2026-11-26
+
+### Added
+
+- `/navitok:setup` (ROADMAP v0.13): `commands/setup.md` and a **Setup** section in `SKILL.md`.
+- `scripts/doctor.py check [--json]`: one read-only table (✅ / ❌, why it helps, the command that would fix it) for Python 3.10+ (required), the `.navitok/` state (config, plan, schedule), the active account-usage source and its freshness, the statusline (navitok's, the user's own one not yet wrapped, or none; project-local > project > user scope), output trimming, Superpowers and Graphify (CLI on `PATH`, graph present). It runs, installs and changes nothing; commands are only shown.
+- `scripts/doctor.py wizard [--plan] [--mode] [--statusline on|off] [--trim on|off]`: writes the answers to `.navitok/config.json`, keeping other keys and trimming overrides. It never edits Claude Code's settings. For the statusline it prints the change `statusline.py setup` would make, to be applied only after approval. When trimming is on, it explains both paths: the hook for commands that succeed, `run.py` for tests and builds.
+- `docs/data-sources.md`: statusline scope and precedence from the settings/statusline docs; the install commands, taken from each tool's own README.
+- 9 tests in `tests/test_doctor.py`: a clean machine (empty home and project, no CLI) reports all 6 gaps with fixes and leaves both folders untouched, old Python is a required gap, JSON output, a set-up project with every source detected, a custom statusline wrapped rather than replaced, scope precedence, and the wizard (answers written, other keys kept, statusline only proposed, a bad plan rejected).
+
 ## [0.12.1] - 2026-11-26
 
 ### Fixed

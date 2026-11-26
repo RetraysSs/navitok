@@ -13,6 +13,10 @@ git clone <this-repo> navitok
 claude --plugin-dir ./navitok
 ```
 
+## First run: `/navitok:setup`
+
+`/navitok:setup` shows one table of what navitok can use: Python, the project's `.navitok/` state, which account-usage source is active, the statusline, output trimming, and whether Superpowers and Graphify are there. Each gap comes with why it helps and the command that would fix it. A short wizard then asks for your plan, mode, statusline and trimming preference and writes `.navitok/config.json`. Nothing is installed or changed without your approval. The statusline change is shown first and applied only if you say yes. The same table: `python scripts/doctor.py check`.
+
 ## Terminal panel
 
 A live view of your releases, session and weekly usage, external usage and calibration, for a second terminal. It costs zero tokens and reads local files only.

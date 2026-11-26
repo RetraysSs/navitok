@@ -1,6 +1,6 @@
 ---
 name: navitok
-description: Plans a project into releases that each fit one 5-hour Claude session under the user's usage limits, priced as ranges of session %. Use when the user asks to plan or break down a project around their Claude usage limits, or runs /navitok:plan, /navitok:checkpoint or /navitok:status. Keeps a live schedule, checks before every task that it still fits, writes handoffs, and reacts to one-line navitok notices about fit and replans.
+description: Plans a project into releases that each fit one 5-hour Claude session under the user's usage limits, priced as ranges of session %. Use when the user asks to plan or break down a project around their Claude usage limits, or runs /navitok:setup, /navitok:plan, /navitok:checkpoint or /navitok:status. Keeps a live schedule, checks before every task that it still fits, writes handoffs, and reacts to one-line navitok notices about fit and replans.
 ---
 
 # navitok: plan a project into session-sized releases
@@ -75,7 +75,7 @@ Without Graphify nothing changes.
 
 ## Output trimming (optional, off by default)
 
-If `.navitok/config.json` has `"trim_output": true` (or `{"enabled": true, "max_lines": 120, "head": 10, "tail": 40, "context": 3, "keep_logs": 20}`), long Bash output reaches you trimmed: the first lines, every error-looking line with context, whole tracebacks and the last lines, with repeats collapsed. The first line names the full log in `.navitok/logs/`. When a trimmed result is not enough, read that log (ideally only the part you need) instead of re-running the command. Never turn trimming on without the user's approval (`/navitok:setup` will offer it).
+If `.navitok/config.json` has `"trim_output": true` (or `{"enabled": true, "max_lines": 120, "head": 10, "tail": 40, "context": 3, "keep_logs": 20}`), long Bash output reaches you trimmed: the first lines, every error-looking line with context, whole tracebacks and the last lines, with repeats collapsed. The first line names the full log in `.navitok/logs/`. When a trimmed result is not enough, read that log (ideally only the part you need) instead of re-running the command. Never turn trimming on without the user's approval (`/navitok:setup` offers it).
 
 The hook only trims commands that **succeed**: a command that exits non-zero reaches you untrimmed, because Claude Code fires `PostToolUseFailure` for it and that event cannot replace output. So **when `trim_output` is on, run tests and builds through the wrapper**:
 
@@ -153,6 +153,18 @@ For a live full-screen view in a second terminal (zero tokens, local files only)
 
 Give them the real path: `${CLAUDE_PLUGIN_ROOT}` expanded. Suggest an alias such as `alias navitok-watch='python3 "<plugin path>/scripts/watch.py"'`. Do not run the live panel yourself: it is for the user's own terminal.
 
-## Not available yet
+## Setup
 
-`/navitok:setup` arrives in a later navitok release. If the user asks for them, say so. Do not invent usage numbers.
+For `/navitok:setup`, or when the user asks what navitok can use:
+
+1. Run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/doctor.py" check` in the project root and show the table as is. It is read-only.
+2. If `.navitok/config.json` is missing, or the user wants to change it, ask the wizard questions in one go, and offer these choices:
+   - **plan:** `pro`, `max5x`, `max20x` or `api`;
+   - **mode:** `strict` (never start a release that does not fit) or `flex`;
+   - **statusline:** wanted or not. It shows session left at zero tokens and gives the fit check its fresh usage reading. An existing statusline is wrapped, never replaced;
+   - **output trimming:** on or off (off by default). Explain both paths: the hook trims long output of commands that **succeed**, with nothing to do; tests and builds must go through `scripts/run.py -- CMD ...`, because Claude Code does not run `PostToolUse` for commands that exit non-zero. The full output is kept in `.navitok/logs/`.
+3. Run `doctor.py wizard --plan <plan> --mode <mode> --statusline on|off --trim on|off` with the answers, and show its output. It writes only `.navitok/config.json`.
+4. **Never install or configure anything yourself.** The table and the wizard show commands: plugin installs, `uv tool install graphifyy`, `statusline.py setup --apply`. Run one only after the user explicitly approves that command, and show what it will change first (for the statusline, the `setup` output without `--apply`).
+5. Run `doctor.py check` again at the end, and suggest `/navitok:plan` if there is no plan yet.
+
+Do not invent usage numbers.
