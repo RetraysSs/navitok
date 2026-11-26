@@ -35,6 +35,22 @@ Development version: `git clone https://github.com/RetraysSs/navitok`, then `cla
 - `/navitok:plan` end to end from that GitHub-installed copy, in an empty folder.
 - By the maintainer, with a real logged-in config: install from GitHub, then `/navitok:plan` in an empty folder. 3 releases were planned and the files written, and nothing was done without approval.
 
+## Good to know
+
+Read this before you rely on navitok.
+
+- **Superpowers and Graphify are not installed with navitok.** navitok works with them only if you install them yourself. `/navitok:setup` shows which ones are missing and the command for each.
+- **Install once, plan once per project.** The plugin is installed once. Then run `/navitok:plan` once in each project: it creates the project's `.navitok/` folder. The hooks do nothing in a project without a `.navitok/` folder. `/navitok:setup` is optional and mainly useful on the first run.
+- **Statusline: set up once, again after each plugin update.** `/navitok:setup` shows the statusline change first and applies it only if you approve. The setting points at the folder of the plugin version you have now, so after a plugin update run the statusline step of `/navitok:setup` again.
+- **Learning is per project.** Each new project starts from the built-in seed. The seed comes from the maintainer's data: one person, the Pro plan, one project. Learning across projects is planned for v1.1.
+- **Max 5x and Max 20x are not measured yet.** Their multipliers are nominal (a fifth and a twentieth of Pro), so estimates on those plans are rougher until your own history calibrates them.
+- **Windows needs Git for Windows (Git Bash)** for the hooks and the statusline (see Install).
+- **Your data stays on your machine.** Everything is in `.navitok/` in your project and in your Claude Code settings. Nothing is uploaded.
+- **Uninstall:**
+  1. Remove the statusline: `python3 <plugin>/scripts/statusline.py remove` shows the change, and the same command with `--apply` writes it. If navitok wrapped your own statusline, your command is restored. A backup of the settings file is kept next to it as `settings.json.navitok-backup`.
+  2. Uninstall the plugin: `claude plugin uninstall navitok@navitok` in your shell, or `/plugin uninstall` in a session, which opens the plugin panel. `claude plugin marketplace remove navitok` also removes the marketplace.
+  3. Delete the `.navitok/` folder in each project.
+
 ## 60-second example
 
 ```text
@@ -144,6 +160,7 @@ The hook only sees commands that succeed: Claude Code does not run `PostToolUse`
 ## How estimates work
 
 - **Ranges with a confidence score, never single numbers.** Cold-start ranges come from a heuristics table by task type and size. They narrow as your own history calibrates them.
+- **Learning is per project today.** Each new project starts from the built-in seed (one maintainer, Pro plan, one project); learning across projects is planned for v1.1.
 - **Percentages, not tokens.** Plan limits are modelled as % of a session and a week. navitok makes no claims about absolute token limits.
 - **Never being cut off matters more than using the whole limit.** The stop threshold starts at 90% and can rise from your history, but never above 98%. In **strict** mode a release that does not fit is not started. **Flex** mode continues on extra usage past the limit.
 - **Scripts compute, the model decides.** Claude splits the work into tasks. Every number comes from deterministic scripts, and replanning happens only between tasks, never mid-task.
