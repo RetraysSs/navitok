@@ -4,7 +4,7 @@
 
 navitok is a Claude Code plugin that plans a project into session-sized releases. Each release is sized to fit your plan's 5-hour session and weekly usage limits. navitok keeps the schedule current as your real usage changes, including usage outside Claude Code, and it calibrates its estimates from your own history, so a prompt is never cut off halfway.
 
-**Status: pre-1.0 (0.13.0).** Everything described here works. The 1.0 release (marketplace install test, screenshots) is in progress, see [ROADMAP.md](ROADMAP.md).
+**Status: 1.0.0.** See [CHANGELOG.md](CHANGELOG.md) for what changed and [ROADMAP.md](ROADMAP.md) for what comes next.
 
 > **Disclaimer.** Estimates rely on personal calibration and are not guarantees. Anthropic's limits may change. Usage from other devices is detected only through account-wide numbers.
 
@@ -27,6 +27,11 @@ navitok is a Claude Code plugin that plans a project into session-sized releases
 Needs Python 3.10+ (standard library only). On Windows, `python` works where `python3` is the Microsoft Store alias.
 
 Development version: `git clone https://github.com/RetraysSs/navitok`, then `claude --plugin-dir ./navitok`, and `/reload-plugins` after changes.
+
+**Install tested for 1.0.0** (Claude Code 2.1.332, Windows 11):
+- `/plugin marketplace add RetraysSs/navitok` and `/plugin install navitok@navitok` from GitHub, in an isolated Claude Code config folder. The plugin was installed and enabled with all four commands, and the installed copy's `doctor.py check` ran.
+- `/navitok:plan` end to end from that GitHub-installed copy, in an empty folder.
+- By the maintainer, with a real logged-in config: install from GitHub, then `/navitok:plan` in an empty folder. 3 releases were planned and the files written, and nothing was done without approval.
 
 ## 60-second example
 
@@ -51,7 +56,7 @@ All releases together: 12.7–41.5% (a sum across sessions, not one session's us
 All releases fit under 90%.
 ```
 
-Then work through the releases. The statusline shows where you are, for example `v0.3 ▓▓▓░░ 62% · fits · week 31% (ext 8%) · conf 40`. `/navitok:status` shows the same with more detail. `/navitok:checkpoint` commits at a clean point and writes a handoff that the next session picks up.
+Then work through the releases. The statusline shows where you are (see below). `/navitok:status` shows the same with more detail. `/navitok:checkpoint` commits at a clean point and writes a handoff that the next session picks up.
 
 Full sample roadmaps for Pro (strict) and Max 5x (flex) are in [`examples/`](examples/).
 
@@ -70,11 +75,34 @@ Full sample roadmaps for Pro (strict) and Max 5x (flex) are in [`examples/`](exa
 
 ## Statusline
 
+Real output for a freshly planned sample project, with 38% of the session and 31% of the week used:
+
+```text
+v0.1 ▓▓░░░ 38% · fits · week 31% · cold start
+```
+
+Once navitok knows how much of the week came from outside Claude Code, the segment shows it (`week 31% (ext 8%)`). Once calibration has a confidence score, `conf 40` replaces `cold start`. If the next task would no longer fit, `fits` becomes `no fit: checkpoint`.
+
+
 The statusline segment shows the current release, session used, whether the next task fits, weekly use with the external share, and confidence. It also saves the fresh account-wide reading that the fit check prefers. If you already have a statusline, navitok wraps it, so your line stays first, and it never replaces it. `/navitok:setup` shows the exact settings change before anything is written.
 
 ## Terminal panel
 
-A live view of your releases, session and weekly usage, external usage and calibration, for a second terminal. It costs zero tokens and reads local files only.
+A live view of your releases, session and weekly usage, external usage and calibration, for a second terminal. It costs zero tokens and reads local files only. One real frame (`watch.py --once`) for the same sample project, with the clock and reset-time lines left out:
+
+```text
+navitok · cli-todo
+Session ▓▓▓▓▓▓▓▓░░░░░░░░░|░░ 38.0% used · stop at 90.0% · 52.0% left
+Week    ▓▓▓▓▓▓░░░░░░░░░░░░░░ 31.0% used · external unknown
+Confidence 0/100 · cold start (0 of 5 sessions) · usage: statusline (live)
+
+Current v0.1: 5.8–18.1% left · fits this session
+Releases
+  v0.1   Core todo CLI: add, list todo   0/4  5.8–18.1%    week 1 current
+  v0.2   Due dates: set, show, so todo   0/4  6.5–19.5%    week 1 current
+  v0.3   Tags: tag todos and filt todo   0/4  6.5–19.5%    week 1 next
+  v0.4   Polish: errors, docs and todo   0/4  2.5–10.0%    week 1 next
+```
 
 ```bash
 python3 <plugin>/scripts/watch.py            # live, q to quit (python on Windows)
