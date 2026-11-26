@@ -1,6 +1,14 @@
 # Handoff
 
-## Last sprint: v1.0b (release 1.0.0), done
+## Last sprint: 1.0.1 (Git Bash check, context hint, cleanup), done
+
+- **Commit:** `6ad2f30 feat: Git Bash check, context-size hint, LF JSON (v1.0.1)`. Tests 290/290 (12 new: 6 shell in `tests/test_doctor.py`, 5 context hint in `tests/test_statusline.py`, 1 LF in `tests/test_plan.py`). Version 1.0.1 in `plugin.json` and `marketplace.json`. Release notes in `docs/releases/v1.0.1.md`; the maintainer publishes the GitHub release. Push of `main` and tag `v1.0.1` (on `6ad2f30`) were approved, and they run after the dogfood record commit.
+- **Git Bash (t1):** `doctor.py check` has a new **required** `shell` row, second after Python. On Windows it checks `CLAUDE_CODE_GIT_BASH_PATH`, then `sh`/`bash` on `PATH` (it skips anything under System32, which is WSL), then `<Git>\bin\bash.exe` found from `git.exe`'s parents, and runs `sh -c 'echo ok'`. That probe is the only command the doctor runs, and the docstring says so. When it is missing, the fix links Git for Windows and shows `winget install --id Git.Git -e`. The README Install section has a Windows paragraph. Hooks docs verified: shell form runs in `sh -c`, or in Git Bash on Windows, with PowerShell as the fallback (recorded in `docs/data-sources.md`). Live: ✅ on this machine (Git's `usr\bin\sh.EXE`).
+- **Context hint (t5):** `ctx 160k · checkpoint + new session` is appended to the segment once `context_window.total_input_tokens` (documented; the `current_usage` input sum is the fallback) reaches `context_hint_tokens`. The default is 150000, and `0`/`false` turns it off. **Deviation to review:** the key is top-level `context_hint_tokens`, not `statusline.context_hint_tokens` as I proposed, because `config.json`'s `statusline` key is already a boolean (set by the wizard). It also shows on the "no schedule yet" line. The statusline now reads up to four small files (`config.json` added). Live: a temp project with 163,200 tokens showed `navitok: no schedule yet · ctx 163k · checkpoint + new session`; with 3,200 tokens there was no hint.
+- **Cleanup:** `ledger.jsonl.lock` untracked, `*.lock` gitignored. The personal path was replaced in the CHANGELOG and this file (current files only, no history rewrite, as decided). `plan.py` `_write_json` uses `newline="\n"`.
+- **Not done:** `statusline.py run_wrapped` still finds the shell with `which("sh") or which("bash")` and does not use the doctor's Git-location fallback. Images, the icon and ROADMAP checkboxes are also not done.
+
+## Previous sprint: v1.0b (release 1.0.0), done
 
 - **Commits:** `c76adaa docs: Built with navitok table covers all 16 measured sprints`, `1dd0477 release: v1.0.0`. Tag **`v1.0.0`** pushed (annotated). `main` is pushed to `origin` (public repo, as the maintainer confirmed). Tests 278/278.
 - **README "Built with navitok":** all 16 measured sprints. v0.0–v0.8: 2 of 9 inside the range, mean absolute error 6.1. v0.9–v1.0a: 7 of 7 inside, 2.1. The column header was corrected: these are absolute errors, not signed ones.
@@ -85,10 +93,9 @@
 - CLI output must be UTF-8 (`sys.stdout.reconfigure`), or the Bash tool and tests get garbled text on Windows (v0.4).
 - Because the usage cache is frozen, the `UserPromptSubmit` hook in a real session will usually see a **stale** reading (`usage_stale: true`) until v0.8's statusline snapshot exists. `schedule.py recompute --session-pct N --weekly-pct N` feeds a manual `/usage` reading (v0.5).
 
-## Next: 1.0.1 (not planned yet, needs approval)
+## Next (not planned yet, needs approval)
 
-Candidates: statusline and panel images (and optionally a GIF) for the README; a plugin icon (square PNG, 512–2048 px; the validator warns without one); `newline="
-"` in `plan.py` `_write_json`. Still open: the v0.2 0-token start snapshot, the manual-reading issue when no statusline is configured, a live curses run on Linux or macOS, and the decision on Graphify's local `CLAUDE.md` section and `.claude/settings.json`.
+Candidates: statusline and panel images (and optionally a GIF) for the README; a plugin icon (square PNG, 512–2048 px; the validator warns without one); reuse `doctor.find_shell` in `statusline.run_wrapped`. Still open: the v0.2 0-token start snapshot, the manual-reading issue when no statusline is configured, a live curses run on Linux or macOS, and the decision on Graphify's local `CLAUDE.md` section and `.claude/settings.json`.
 
 ## Notes
 
