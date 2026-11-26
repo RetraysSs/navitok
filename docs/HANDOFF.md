@@ -1,6 +1,14 @@
 # Handoff
 
-## Last sprint: v0.12.1 (trim wrapper for failing commands), done
+## Last sprint: v0.13 (`/navitok:setup`, doctor, wizard), done
+
+- **Commit:** `8769bd5 feat(setup): doctor and first-run wizard (v0.13.0)`. Tests 275/275 (9 new in `tests/test_doctor.py`).
+- **What it does:** `doctor.py check` is a read-only ✅/❌ table covering Python (the only required item), `.navitok/` state, usage source and freshness, statusline (navitok, custom-not-wrapped or none; project-local > project > user), trimming, Superpowers, and Graphify (CLI + graph). Each gap has why it helps and the command to fix it. `doctor.py wizard` writes plan, mode, statusline and trimming to `config.json` only and explains both trimming paths. The statusline change is only proposed, via `statusline.py setup` without `--apply`. `commands/setup.md` points to the new **Setup** section in `SKILL.md`, which says to run nothing without explicit approval of that command.
+- **Acceptance:** a clean machine is simulated in tests (empty home and project, no CLI): all 6 gaps reported, both folders untouched. A CLI run with an empty `HOME`/`USERPROFILE` and a minimal `PATH` exits 0. Live: `/navitok:setup` in `claude -p --plugin-dir` in an empty folder ran the doctor, reported the gaps correctly, asked the wizard questions with both trimming paths, installed nothing and created nothing.
+- **Verified, in `docs/data-sources.md`:** settings precedence from the docs. Install commands from each tool's own README (Superpowers 7.0.2, graphifyy 0.9.120), not from memory.
+- **Decisions to review:** a fix command is marked `$ ` in the JSON (notes are not). Trimming off and missing optional tools show as ❌ "not set up", while only Python counts as required. The trim hook is still always registered (it probes Python on every Bash call); registering it only when enabled was not done (not in the sprint's checklist). ROADMAP v0.13 boxes left unticked, as before.
+
+## Previous sprint: v0.12.1 (trim wrapper for failing commands), done
 
 - **Commit:** `d8fb877 fix(trim): run.py wrapper for failing commands (v0.12.1)`. Tests 266/266 (9 new in `tests/test_run.py`).
 - **Live check of v0.12 (before the patch):** `claude -p --plugin-dir .` with `trim_output` on, debug log read. Exit 0, 303 lines: `PostToolUse:Bash ... replaced tool output`, so Claude got the marker plus 6 lines (`updatedToolOutput` for Bash is **verified**). Exit 1, same output: `outcome=error`, no `PostToolUse` at all, so Claude got all 303 lines. The hooks docs confirm `PostToolUse` is success-only, and `PostToolUseFailure` can only add `additionalContext`.
@@ -56,9 +64,9 @@
 - CLI output must be UTF-8 (`sys.stdout.reconfigure`), or the Bash tool and tests get garbled text on Windows (v0.4).
 - Because the usage cache is frozen, the `UserPromptSubmit` hook in a real session will usually see a **stale** reading (`usage_stale: true`) until v0.8's statusline snapshot exists. `schedule.py recompute --session-pct N --weekly-pct N` feeds a manual `/usage` reading (v0.5).
 
-## Next sprint: v0.13 (`/navitok:setup`, doctor, `S`): approved, starts in this session after the v0.12.1 record
+## Next sprint: v1.0 (Release, `M`): not started, needs approval
 
-See ROADMAP §7 v0.13. It should offer to enable `trim_output` and **explain both trimming paths**: the hook for successful output, and `run.py` for tests and builds. It could register the trim hook only when enabled. The estimate was given at the start: ~4.5–12.5%. Still open: the v0.2 0-token start snapshot, the manual-reading issue when no statusline is configured, a live curses run on Linux or macOS, and the decision on Graphify's local `CLAUDE.md` section and `.claude/settings.json`.
+See ROADMAP §7 v1.0. An `M` sprint may need a split; propose one at the start. Still open: the v0.2 0-token start snapshot, the manual-reading issue when no statusline is configured, a live curses run on Linux or macOS, and the decision on Graphify's local `CLAUDE.md` section and `.claude/settings.json`.
 
 ## Notes
 
