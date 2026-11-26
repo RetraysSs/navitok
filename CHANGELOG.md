@@ -3,6 +3,20 @@
 All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.11.0] - 2026-11-26
+
+### Added
+
+- `scripts/integrations/graphify.py` (ROADMAP v0.11): navitok **works with** Graphify graphs. It reads `graphify-out/graph.json` only, and copies or runs none of Graphify's code.
+  - `detect`: graph present (nodes, edges, Graphify version, report) or, if missing, a corpus count (code vs non-code files).
+  - `scope` / `apply`: match a task's title to graph nodes and estimate the files and lines it touches. `apply` fills `files` and a `scope` record on open tasks without a hand-set file count, marks the plan `helpers: ["graphify"]`, re-prices and renders `ROADMAP.md`.
+  - `map [--apply]`: no graph yet → a separately priced "build the map" release (code only: `config` S inline; otherwise `research` S/M/L by non-code file count, subagent).
+- Helper groups in calibration: `estimate.helper_group()`. `calibrate.py` learns per-type ranges per group (`helper_groups`), each group needing its own 5 clean sessions. `types` stays the unhelped group. Only Graphify splits history; Superpowers does not.
+- `plan.learned_types(cfg, helpers)`: a Graphify-helped plan is priced only from helped history, and from the cold start until that group has learned. `plan.py price`, `schedule.py` and `handoff.py` pass the plan's `helpers`.
+- `hook_session.py`: session records carry `helpers: ["graphify"]` when the project has a graph (one local stat, failure-safe).
+- `SKILL.md` "Works with Graphify", README section, `docs/data-sources.md` entry (format checked against graphifyy 0.9.120).
+- 18 tests: detection (present, absent, unreadable, `edges` key), spans, title → nodes → neighbour files, hand-set counts kept, more files raise the estimate, corpus count, map pricing, helped vs unhelped history kept apart, estimates from the right group, cold-start fallback, the hook helper, and the CLI end to end (non-ASCII path, graph bytes and mtime unchanged).
+
 ## [0.10.0] - 2026-11-26
 
 ### Added

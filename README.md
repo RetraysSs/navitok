@@ -36,6 +36,18 @@ python3 <plugin>/scripts/integrations/superpowers.py ingest [--execution inline|
 
 navitok works with Superpowers. It is not an official integration, and everything works without it.
 
+## Works with Graphify
+
+If the project has a [Graphify](https://github.com/Graphify-Labs/graphify) knowledge graph (`graphify-out/graph.json`), navitok reads it to estimate which files and how many lines each task touches, and prices tasks from that. Without a graph it can add a separately priced "build the map" release. Graphify's files are only read, never changed, and Graphify is never run or installed by navitok.
+
+```bash
+python3 <plugin>/scripts/integrations/graphify.py detect
+python3 <plugin>/scripts/integrations/graphify.py apply        # scope plan.json tasks
+python3 <plugin>/scripts/integrations/graphify.py map [--apply]
+```
+
+Sessions with and without a graph are calibrated separately. navitok works with Graphify. It is not an official integration, and everything works without it.
+
 ## Development
 
 Scripts use the Python 3.10+ standard library only.

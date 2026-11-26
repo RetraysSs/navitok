@@ -214,3 +214,16 @@ Superpowers is a third-party plugin (obra/superpowers, MIT). navitok only detect
   - **Execution choice:** at handoff the user picks *Subagent-driven* (a fresh implementer and a fresh reviewer per task, plus a whole-branch review) or *Native/inline* (`executing-plans`). The choice is not written to the plan file, so navitok's `--execution auto` assumes the plan's recommendation (subagent-driven).
 - **Detection — UNSTABLE, undocumented:** `~/.claude/plugins/installed_plugins.json`, `{"version": 2, "plugins": {"superpowers@<marketplace>": [{"scope", "installPath", "version", ...}]}}`. Behind `detect()` in `scripts/integrations/superpowers.py`. Fallback: a missing or unreadable registry means "not installed". Ingestion only needs the plan files, so it works either way.
 - **Cost multiplier:** subagent-driven execution is priced ×1.5. That number is an **unmeasured assumption**, not data (see `heuristics.md`).
+
+## Graphify (checked 2026-11-26, graphifyy 0.9.120) — works with, read-only
+
+Graphify is a third-party tool (Graphify-Labs/graphify, Apache-2.0; PyPI package `graphifyy`). navitok only detects its output and reads it. It never copies its code, never writes its files and never runs it.
+
+- **Output (checked against a graph built locally with `graphify update`, AST only, no LLM):** `graphify-out/` holds `graph.json`, `GRAPH_REPORT.md`, `graph.html`, `manifest.json` and `cache/`.
+  - `graph.json` is NetworkX node-link JSON: `{"directed", "multigraph", "graph": {"schema_version": 1, "graphify_version"}, "nodes": [...], "links": [...], "hyperedges": [...]}`.
+  - A node has `id`, `label`, `norm_label`, `source_file` (repo-relative, `/`), `source_location` (`"L34"`), `file_type`, `community`, `community_name`, `_origin`. A link has `source`, `target`, `relation` (e.g. `calls`), `confidence`, `source_file`, `source_location`, `weight`.
+  - navitok reads only `nodes[].id/label/norm_label/source_file/source_location` and `links[].source/target`. It also accepts `edges` in place of `links` (the NetworkX alternative key). An unreadable or unknown file is treated as "no graph".
+- **Detection:** `graphify-out/graph.json` exists in the project root. The hooks do one stat and record `helpers: ["graphify"]` on the session.
+- **Cost of building the map:** code goes through tree-sitter and costs no tokens (`graphify update .`). Other files (docs, PDFs, images, media) go through LLM extraction in the session (`/graphify .`). navitok prices that by the number of non-code files. The size bands (≤20 S, ≤100 M, else L) and the subagent multiplier are **unmeasured assumptions**.
+- **Scope heuristic (navitok's own):** title words (4+ letters, minus stop words) are matched against node labels and file names. Files = the matched nodes' files plus their direct neighbours'. Lines = the matched nodes' spans (to the next node in the same file, 20 for the last one, capped at 200). The line count is recorded for calibration only; the file count feeds `estimate.py`'s files factor.
+

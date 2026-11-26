@@ -46,6 +46,10 @@ The first 3 files are free. Each further file adds **0.1** to the multiplier, up
 
 `subagent` is set when a Superpowers plan will run with subagent-driven-development, which starts a fresh implementer context and a fresh reviewer context for each task. **×1.5 is an unmeasured assumption.** No dogfood sprint has used that workflow yet. On Pro in strict mode, navitok recommends inline execution (`superpowers:executing-plans`) instead.
 
+## File scope from Graphify
+
+When the project has a Graphify graph, `graphify.py apply` fills a task's `files` from the graph (matched nodes' files plus their direct neighbours') if no count was set by hand. That count goes through the files factor above, so the type ranges are unchanged. The estimated lines are recorded for calibration only. Sessions with a graph are calibrated as their own group (`helpers: ["graphify"]`) and fall back to these cold-start ranges until that group has 5 clean sessions. The "build the map" release's size bands are unmeasured assumptions.
+
 ## Totals, threshold, confidence
 
 - **Total** = sum of task lows and sum of task highs. Ranges are not pooled, so the total stays conservative.

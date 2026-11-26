@@ -69,7 +69,7 @@ def _priced(plan, threshold, cfg=None):
     """Use plan.json's prices. If any task is unpriced, price a copy in memory."""
     if all(isinstance(t.get("est_pct"), list) for r in plan["releases"] for t in r["tasks"]):
         return plan
-    priced, _ = planmod.price(copy.deepcopy(plan), threshold, planmod.learned_types(cfg or {}))
+    priced, _ = planmod.price(copy.deepcopy(plan), threshold, planmod.learned_types(cfg or {}, plan.get("helpers")))
     return priced
 
 

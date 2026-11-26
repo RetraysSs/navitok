@@ -59,7 +59,7 @@ def _fmt(x):
 def _priced(plan, cfg):
     if all(isinstance(t.get("est_pct"), list) for r in plan["releases"] for t in r["tasks"]):
         return plan
-    priced, _ = planmod.price(copy.deepcopy(plan), planmod.threshold_for(cfg), planmod.learned_types(cfg))
+    priced, _ = planmod.price(copy.deepcopy(plan), planmod.threshold_for(cfg), planmod.learned_types(cfg, plan.get("helpers")))
     return priced
 
 

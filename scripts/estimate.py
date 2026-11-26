@@ -56,6 +56,17 @@ PLAN_ALIASES = {"max 5x": "max5x", "max-5x": "max5x", "max_5x": "max5x",
 # an unmeasured cold-start assumption (see heuristics.md); calibrate later.
 EXECUTION = {"inline": 1.0, "subagent": 1.5}
 
+# Helpers that change what a task costs (v0.11). Calibration learns each
+# combination separately; other helpers (e.g. superpowers) do not split history.
+GROUPED_HELPERS = ("graphify",)
+PLAIN_GROUP = "plain"
+
+
+def helper_group(helpers):
+    """Calibration group for a record's or plan's `helpers` list."""
+    found = sorted({str(h).lower() for h in helpers or []} & set(GROUPED_HELPERS))
+    return "+".join(found) or PLAIN_GROUP
+
 # Cold-start confidence (0-100). Low on purpose: one maintainer's data.
 CONF_KNOWN = 30
 CONF_UNKNOWN_SIZE = 20

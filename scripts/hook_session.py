@@ -160,8 +160,19 @@ def build_record(state, end_reading=None, ended_cleanly=True, reason=None, ts_en
         ended_cleanly=ended_cleanly,
         release=(tasks or [{}])[0].get("release"),
         tasks=[{k: v for k, v in t.items() if k != "release"} for t in tasks or []],
+        helpers=state.get("helpers") or [],
         notes="; ".join(notes),
     )
+
+
+def helpers_for(project_dir):
+    """Helpers a session ran with, for calibration groups (v0.11). Local stat only;
+    a failure never breaks the hook, it just records no helper."""
+    try:
+        from integrations import graphify
+        return [graphify.HELPER] if graphify.present(project_dir) else []
+    except Exception:
+        return []
 
 
 def on_start(payload, nav, now=None, cache_path=None):
@@ -179,6 +190,7 @@ def on_start(payload, nav, now=None, cache_path=None):
         return
     _write_json(path, {"session_id": session_id,
                        "start": snapshot(payload, nav, now, cache_path),
+                       "helpers": helpers_for(nav.parent),
                        "plan_tasks": plan_tasks(nav)})
 
 
@@ -187,6 +199,7 @@ def on_stop(payload, nav, now=None, cache_path=None):
     state = _read_json(path) or {"session_id": payload.get("session_id")}
     snap = snapshot(payload, nav, now, cache_path)
     state.setdefault("start", snap)
+    state.setdefault("helpers", helpers_for(nav.parent))
     state["last"] = snap
     _write_json(path, state)
 

@@ -103,13 +103,24 @@ def threshold_for(cfg):
     return base
 
 
-def learned_types(cfg):
-    """Per-type learned ranges for estimate.py, or None at cold start."""
+def learned_types(cfg, helpers=None):
+    """Per-type learned ranges for estimate.py, or None at cold start.
+    `helpers` (the plan's) picks the calibration group: a Graphify-helped plan
+    is priced only from Graphify-helped history, and falls back to the cold
+    start (not to unhelped history) until that group has learned (v0.11)."""
     cal = cfg.get(CALIBRATION_KEY)
     if not isinstance(cal, dict) or not cal.get("learned"):
         return None
+    group = estimate.helper_group(helpers)
+    if group == estimate.PLAIN_GROUP:
+        types = cal.get("types")
+    else:
+        g = (cal.get("helper_groups") or {}).get(group)
+        if not isinstance(g, dict) or not g.get("learned"):
+            return None
+        types = g.get("types")
     out = {t: {"est_pct": v["est_pct"], "confidence": cal.get("confidence", 0)}
-           for t, v in (cal.get("types") or {}).items()
+           for t, v in (types or {}).items()
            if isinstance(v, dict) and isinstance(v.get("est_pct"), list)}
     return out or None
 
@@ -266,7 +277,7 @@ def cmd_price(args):
     path, plan = _load_plan(args.project_dir)
     cfg = load_config(args.project_dir)
     threshold = threshold_for(cfg)
-    plan, over = price(plan, threshold, learned_types(cfg))
+    plan, over = price(plan, threshold, learned_types(cfg, plan.get("helpers")))
     _write_json(path, plan)
     for rel in plan["releases"]:
         print(f"{rel['id']:<8} {_rng(rel['est_pct']):>14}  conf {rel['confidence']:>3}  {rel['title']}")

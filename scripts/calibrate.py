@@ -112,6 +112,7 @@ def session_rows(records, ppt):
             reasons.append("large unexplained external usage")
         rows.append({"record": r, "tasks": tasks, "ts_end": r.get("ts_end"),
                      "model": r.get("model"), "plan": r.get("plan"),
+                     "group": estimate.helper_group(r.get("helpers")),
                      "local_pct": local, "external_pct": ext, "est_mid": est_mid,
                      "error": None if local is None or not tasks else local - est_mid,
                      "outlier": reasons})
@@ -171,26 +172,35 @@ def calibrate(records, now=None):
     for x in data:
         if x["est_mid"] <= 0:
             continue
+        group = by_type.setdefault(x["group"], {})
         for t in x["tasks"]:
             actual = t.get("actual_pct")
             if not _num(actual):
                 actual = x["local_pct"] * ((t["est_pct"][0] + t["est_pct"][1]) / 2) / x["est_mid"]
             ttype = str(t.get("type") or "").lower() or "unknown"
             base = actual / size_factor(t, x["plan"])
-            by_type.setdefault(ttype, []).append((base, x["weight"]))
+            group.setdefault(ttype, []).append((base, x["weight"]))
     max_step = max(steps) if steps else None
     threshold = threshold_from(n, max_step, sigma)
     conf = confidence_from(n, sigma) if n else 0
 
-    types = {}
-    for ttype, pairs in sorted(by_type.items()):
-        mean, std = _wstats(pairs)
-        entry = {"n": len(pairs), "mean": _r(mean), "std": _r(std), "est_pct": None}
-        if n >= MIN_N and len(pairs) >= MIN_TYPE_SAMPLES and mean is not None:
-            lo = max(0.05, min(mean - std, 0.7 * mean))
-            hi = max(mean + 1.5 * std, 1.3 * mean, lo + 0.1)
-            entry["est_pct"] = [_r(lo), _r(hi)]
-        types[ttype] = entry
+    # Per-type ranges are learned per helper group (v0.11): sessions helped by
+    # Graphify never price unhelped tasks, and vice versa. Each group needs
+    # MIN_N clean sessions of its own.
+    groups = {}
+    for g in sorted(set(by_type) | {x["group"] for x in clean} | {estimate.PLAIN_GROUP}):
+        n_g = sum(1 for x in clean if x["group"] == g)
+        types_g = {}
+        for ttype, pairs in sorted(by_type.get(g, {}).items()):
+            mean, std = _wstats(pairs)
+            entry = {"n": len(pairs), "mean": _r(mean), "std": _r(std), "est_pct": None}
+            if n_g >= MIN_N and len(pairs) >= MIN_TYPE_SAMPLES and mean is not None:
+                lo = max(0.05, min(mean - std, 0.7 * mean))
+                hi = max(mean + 1.5 * std, 1.3 * mean, lo + 0.1)
+                entry["est_pct"] = [_r(lo), _r(hi)]
+            types_g[ttype] = entry
+        groups[g] = {"n": n_g, "learned": n_g >= MIN_N, "types": types_g}
+    types = groups[estimate.PLAIN_GROUP]["types"]
 
     prof = external.profile(records, now=now, ratio=ratio)
     return {
@@ -208,10 +218,11 @@ def calibrate(records, now=None):
         "threshold": _r(threshold),
         "confidence": conf,
         "types": types,
+        "helper_groups": groups,
         "external": prof,
         "sessions": [{"ts_end": x["ts_end"], "release": x["record"].get("release"),
                       "local_pct": _r(x["local_pct"]), "external_pct": _r(x["external_pct"]),
-                      "est_mid": _r(x["est_mid"]), "error": _r(x["error"]),
+                      "est_mid": _r(x["est_mid"]), "error": _r(x["error"]), "group": x["group"],
                       "weight": _r(x["weight"], 3), "outlier": x["outlier"]}
                      for x in sorted(rows, key=lambda x: x["ts_end"] or "")],
     }

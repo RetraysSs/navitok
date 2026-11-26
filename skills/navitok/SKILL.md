@@ -63,6 +63,16 @@ If the project has Superpowers plans (`docs/superpowers/plans/*.md`, from its wr
 
 Without Superpowers nothing changes: use the plan flow above.
 
+## Works with Graphify
+
+If the project has a Graphify graph (`graphify-out/graph.json`), use it to size tasks. Never edit Graphify's files and never run Graphify yourself without the user's approval: building a graph can cost tokens.
+
+1. After `plan.json` exists, run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/integrations/graphify.py" apply` (`python` on Windows). It matches each open task's title to graph nodes and fills in `files` (plus a `scope` record with paths and estimated lines) where you have not set a file count, marks the plan `helpers: ["graphify"]`, re-prices it and renders `ROADMAP.md`. Check the scoped paths and correct `files` if they are clearly wrong. `graphify.py scope --title "..."` previews one task.
+2. **No graph yet:** `graphify.py map` prices a separate "build the map" release (code-only projects: `graphify update .`, no LLM; otherwise `/graphify .`, priced by the number of non-code files). Offer it to the user. Add it with `--apply` only if they agree.
+3. Calibration learns Graphify-helped sessions apart from unhelped ones. A helped plan uses the cold-start ranges until enough helped sessions exist.
+
+Without Graphify nothing changes.
+
 ## Schedule and notices
 
 A `UserPromptSubmit` hook runs `schedule.py` before every prompt. It writes `.navitok/schedule.json` (script-owned: never edit it) and refreshes the Schedule section of `.navitok/ROADMAP.md`. It costs no tokens and is silent unless the fit status changes.
