@@ -1,6 +1,15 @@
 # Handoff
 
-## Last sprint: v1.0a (fast trim off path, README, examples), done
+## Last sprint: v1.0b (release 1.0.0), done
+
+- **Commits:** `c76adaa docs: Built with navitok table covers all 16 measured sprints`, `1dd0477 release: v1.0.0`. Tag **`v1.0.0`** pushed (annotated). `main` is pushed to `origin` (public repo, as the maintainer confirmed). Tests 278/278.
+- **README "Built with navitok":** all 16 measured sprints. v0.0–v0.8: 2 of 9 inside the range, mean absolute error 6.1. v0.9–v1.0a: 7 of 7 inside, 2.1. The column header was corrected: these are absolute errors, not signed ones.
+- **Install test:** `claude plugin validate .` passes, with two warnings: `CLAUDE.md` in the local working tree only, not in the GitHub copy; and no icon, skipped by the maintainer's decision. `claude plugin marketplace add RetraysSs/navitok` and `install navitok@navitok` ran with `CLAUDE_CONFIG_DIR` pointed at a scratch folder: installed and enabled 0.13.0, all four commands present, the installed `doctor.py check` ran, and the hash of the real plugin registry was unchanged. That isolated config is not logged in, so `/navitok:plan` was run from the GitHub-installed copy through `--plugin-dir` in an empty folder: 4 releases, all fit. The maintainer then installed from GitHub with their real config and ran `/navitok:plan` in an empty folder: 3 releases, files written, nothing done without approval. All three are listed in the README.
+- **Screenshots:** decision (b). The README has real text output (statusline segment, one `watch.py --once` frame) for the sample project. The panel's clock and reset lines are left out, because they show the machine's time-zone name. Images are planned for 1.0.1.
+- **Release notes:** `docs/releases/v1.0.0.md` (committed). The maintainer pastes them on GitHub; `gh` is not installed.
+- **Not done:** the ROADMAP v1.0 checkboxes are left unticked, as for every sprint.
+
+## Previous sprint: v1.0a (fast trim off path, README, examples), done
 
 - **Split:** v1.0 is `M` and partly outward-facing, so it was split into v1.0a (this) and v1.0b (release steps). Noted in ROADMAP v1.0.
 - **Commits:** `70be5b9 perf(hooks): fast off path for the trim hook`, `0256052 docs: v1.0 README, examples and ROADMAP without CLAUDE.md`. Tests 278/278 (3 new in `tests/test_run_sh_fast.py`).
@@ -76,9 +85,10 @@
 - CLI output must be UTF-8 (`sys.stdout.reconfigure`), or the Bash tool and tests get garbled text on Windows (v0.4).
 - Because the usage cache is frozen, the `UserPromptSubmit` hook in a real session will usually see a **stale** reading (`usage_stale: true`) until v0.8's statusline snapshot exists. `schedule.py recompute --session-pct N --weekly-pct N` feeds a manual `/usage` reading (v0.5).
 
-## Next sprint: v1.0b (release steps): not started, each step needs approval
+## Next: 1.0.1 (not planned yet, needs approval)
 
-See ROADMAP §7 v1.0 "Split". Push to `origin`; test the marketplace install (`/plugin marketplace add RetraysSs/navitok`, `/plugin install navitok@navitok`, `/navitok:setup`) from GitHub; statusline and panel screenshots or a GIF (the maintainer captures them); version `1.0.0` in both manifests, move CHANGELOG `[Unreleased]` to `[1.0.0]`, tag `v1.0.0`, GitHub release notes. Commit per ROADMAP: `release: v1.0.0`. Still open: the v0.2 0-token start snapshot, the manual-reading issue when no statusline is configured, a live curses run on Linux or macOS, and the decision on Graphify's local `CLAUDE.md` section and `.claude/settings.json`.
+Candidates: statusline and panel images (and optionally a GIF) for the README; a plugin icon (square PNG, 512–2048 px; the validator warns without one); `newline="
+"` in `plan.py` `_write_json`. Still open: the v0.2 0-token start snapshot, the manual-reading issue when no statusline is configured, a live curses run on Linux or macOS, and the decision on Graphify's local `CLAUDE.md` section and `.claude/settings.json`.
 
 ## Notes
 
