@@ -7,7 +7,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
-- README for v1.0: what navitok does, install (marketplace commands from ROADMAP §2.6), a 60-second example with real `plan.py price` output, a commands table, statusline, how estimates work, FAQ, the disclaimer, a "Works with Superpowers and Graphify" section (third-party tools belong to their owners), and **Built with navitok** with the real numbers from `docs/dogfood/REPORT.md`: 15 sprints; inside the range 2 of 9 for v0.0–v0.8 and 6 of 6 for v0.9–v0.13; mean error 6.1 then 2.5 points.
+- README for v1.0: what navitok does, install (marketplace commands from ROADMAP §2.6), a 60-second example with real `plan.py price` output, a commands table, statusline, how estimates work, FAQ, the disclaimer, a "Works with Superpowers and Graphify" section (third-party tools belong to their owners), and **Built with navitok** with the real numbers from `docs/dogfood/REPORT.md`: 16 measured sprints; inside the range 2 of 9 for v0.0–v0.8 and 7 of 7 for v0.9–v1.0a; mean absolute error 6.1 then 2.1 points.
 - README "Contributing": the contributor rules users need (stdlib only, tests, local plugin testing, fast and silent hooks, verify docs, no real transcripts, third-party rules, Conventional Commits).
 - `examples/pro-strict/` and `examples/max5x-flex/`: the same sample project planned for Pro (strict, 4 releases) and Max 5x (flex, 2 releases). The `plan.json` and the rendered `ROADMAP.md` come from `plan.py price`. `examples/README.md` shows how to regenerate them.
 

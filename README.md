@@ -132,12 +132,12 @@ The hook only sees commands that succeed: Claude Code does not run `PostToolUse`
 
 ## Built with navitok
 
-navitok was built in 15 sprints (v0.0–v0.13 plus the v0.12.1 patch), each planned and measured with navitok's own approach. At the start of each sprint, Claude wrote per-task estimates as ranges, before any work. After the last commit, the maintainer read the real cost from `/usage`. All 15 sprints used 71% of a 5-hour session in total, 4.7% on average.
+navitok was built in 16 measured sprints before the 1.0 release (v0.0–v0.13, the v0.12.1 patch and v1.0a), each planned and measured with navitok's own approach. At the start of each sprint, Claude wrote per-task estimates as ranges, before any work. After the last commit, the maintainer read the real cost from `/usage`. All 16 sprints used 79% of a 5-hour session in total, 4.9% on average.
 
-| Sprints | Actual inside the estimated range | Mean error (actual − midpoint) | Mean actual | Mean estimate midpoint |
+| Sprints | Actual inside the estimated range | Mean absolute error (vs. midpoint) | Mean actual | Mean estimate midpoint |
 |---|---|---|---|---|
 | v0.0–v0.8 (9) | 2 of 9 | 6.1 points | 4.4% | 10.6% |
-| v0.9–v0.13 (6) | **6 of 6** | 2.5 points | 5.2% | 7.1% |
+| v0.9–v1.0a (7) | **7 of 7** | 2.1 points | 5.6% | 7.2% |
 
 The estimates started out 2–10× too high and have stayed inside their range since v0.9. They still lean high, which is the intended direction: being cut off is worse than finishing early. `/usage` reports whole percents, so every number is ±1. One maintainer, one plan (Pro), one project: this improves the cold start, but it does not replace your own calibration. The sprint-by-sprint records are in [`docs/dogfood/REPORT.md`](docs/dogfood/REPORT.md) and [`docs/dogfood/ledger.jsonl`](docs/dogfood/ledger.jsonl).
 
