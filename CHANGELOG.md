@@ -3,6 +3,21 @@
 All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.12.0] - 2026-11-26
+
+### Added
+
+- `scripts/trim_output.py` (ROADMAP v0.12): optional output trimming, a `PostToolUse` hook on Bash that returns `updatedToolOutput`.
+  - Long output (more than `max_lines`, 120 by default) is cut down to: the first lines, error-looking lines with context, whole Python tracebacks and the last 40 lines. Runs of similar lines (equal after masking numbers) are collapsed. A marker line names the full log.
+  - The full output is saved to `.navitok/logs/` (the last 20 logs are kept).
+  - **Off by default** (`trim_output` in `config.json`: `true` or an object with `enabled` and overrides). Silent unless it trimmed something. It never changes the command and never blocks; on any error the output stays as it was.
+  - Registered in `hooks/hooks.json` (`PostToolUse`, matcher `Bash`) through `run.sh trim`.
+- Ledger task fields `files_predicted` and `lines_predicted`: Graphify's predicted scope, recorded by the session hook next to `files_touched` / `lines_changed`, so calibration can learn a scope correction later. `ledger.py` validates all four counts.
+- Architecture rule (ROADMAP §4.1): scripts change `plan.json` only through explicit commands the user runs (`ingest`, `apply`, `map --apply`); hooks never write it.
+- `.gitignore`: `graphify-out/`.
+- `docs/data-sources.md`: hook output fields verified against the hooks docs; why `PostToolUse` and not `PreToolUse` `updatedInput`; Graphify's hook as observed.
+- 13 tests: off by default, settings, collapse, error context, tracebacks, a real 400-test run with one failure trimmed to under 80 lines with the assertion message, the failing test name and the summary kept, `run.sh` end to end (non-ASCII path, silent on short output), other events and tools ignored, log rotation, and **coexistence with Graphify's real `PreToolUse` hook** (run concurrently on one Bash call; skipped when `graphify` is not installed). 2 tests for the predicted-scope fields.
+
 ## [0.11.0] - 2026-11-26
 
 ### Added

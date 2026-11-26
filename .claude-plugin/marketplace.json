@@ -9,7 +9,7 @@
       "name": "navitok",
       "source": "./",
       "description": "Plans projects into releases that fit your 5-hour session and weekly usage limits.",
-      "version": "0.11.0"
+      "version": "0.12.0"
     }
   ]
 }

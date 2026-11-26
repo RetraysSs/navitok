@@ -73,6 +73,10 @@ If the project has a Graphify graph (`graphify-out/graph.json`), use it to size 
 
 Without Graphify nothing changes.
 
+## Output trimming (optional, off by default)
+
+If `.navitok/config.json` has `"trim_output": true` (or `{"enabled": true, "max_lines": 120, "head": 10, "tail": 40, "context": 3, "keep_logs": 20}`), long Bash output reaches you trimmed: the first lines, every error-looking line with context, whole tracebacks and the last lines, with repeats collapsed. The first line names the full log in `.navitok/logs/`. When a trimmed result is not enough, read that log (ideally only the part you need) instead of re-running the command. Never turn trimming on without the user's approval (`/navitok:setup` will offer it).
+
 ## Schedule and notices
 
 A `UserPromptSubmit` hook runs `schedule.py` before every prompt. It writes `.navitok/schedule.json` (script-owned: never edit it) and refreshes the Schedule section of `.navitok/ROADMAP.md`. It costs no tokens and is silent unless the fit status changes.

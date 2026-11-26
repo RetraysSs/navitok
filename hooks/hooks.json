@@ -1,5 +1,5 @@
 {
-  "description": "navitok: session recorder (SessionStart/Stop/SessionEnd, silent), handoff resume (SessionStart: one summary line when .navitok/HANDOFF.md exists, not on resume) and schedule engine (UserPromptSubmit: recomputes .navitok/schedule.json, prints one line only when the fit status changes). Only in projects that have a .navitok/ folder.",
+  "description": "navitok: session recorder (SessionStart/Stop/SessionEnd, silent), handoff resume (SessionStart: one summary line when .navitok/HANDOFF.md exists, not on resume) and schedule engine (UserPromptSubmit: recomputes .navitok/schedule.json, prints one line only when the fit status changes). Only in projects that have a .navitok/ folder. Output trimming (PostToolUse on Bash): off by default; when enabled in .navitok/config.json, replaces long Bash output with a trimmed copy and saves the full output to .navitok/logs/; silent otherwise.",
   "hooks": {
     "SessionStart": [
       {
@@ -41,6 +41,18 @@
             "type": "command",
             "command": "sh \"${CLAUDE_PLUGIN_ROOT}/hooks/run.sh\" end",
             "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/hooks/run.sh\" trim",
+            "timeout": 10
           }
         ]
       }

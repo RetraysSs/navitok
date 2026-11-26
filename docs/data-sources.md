@@ -35,7 +35,7 @@ Source: https://code.claude.com/docs/en/hooks. Status: **documented**. The page 
 - Common input fields: `session_id`, `transcript_path`, `cwd`, `hook_event_name`, `permission_mode`, `effort` *(unverified)*. Hooks can therefore find the transcript, and `effort` can fill the ledger field.
 - `SessionStart` / `UserPromptSubmit` stdout, or `hookSpecificOutput.additionalContext`, is added to Claude's context *(unverified)*. This is the Tier-1 notice channel.
 - `Stop` input has `last_assistant_message`, because `transcript_path` may lag behind *(unverified)*.
-- `PreToolUse` can rewrite tool arguments via `hookSpecificOutput.updatedInput`. `PostToolUse` may replace output via `updatedToolOutput` *(unverified)*. Either is the mechanism for v0.12 trimming.
+- `PreToolUse` can rewrite tool arguments via `hookSpecificOutput.updatedInput`. `PostToolUse` may replace output via `updatedToolOutput`. Verified on 2026-11-26, see "Output trimming" below.
 - **No hook input carries rate-limit / usage %.** `SessionStart` on resume reportedly carries `context_tokens` *(unverified)*.
 
 ### Hooks re-verification for v0.2 (checked 2026-11-24, verbatim sections)
@@ -226,4 +226,12 @@ Graphify is a third-party tool (Graphify-Labs/graphify, Apache-2.0; PyPI package
 - **Detection:** `graphify-out/graph.json` exists in the project root. The hooks do one stat and record `helpers: ["graphify"]` on the session.
 - **Cost of building the map:** code goes through tree-sitter and costs no tokens (`graphify update .`). Other files (docs, PDFs, images, media) go through LLM extraction in the session (`/graphify .`). navitok prices that by the number of non-code files. The size bands (≤20 S, ≤100 M, else L) and the subagent multiplier are **unmeasured assumptions**.
 - **Scope heuristic (navitok's own):** title words (4+ letters, minus stop words) are matched against node labels and file names. Files = the matched nodes' files plus their direct neighbours'. Lines = the matched nodes' spans (to the next node in the same file, 20 for the last one, capped at 200). The line count is recorded for calibration only; the file count feeds `estimate.py`'s files factor.
+
+## Output trimming hook (checked 2026-11-26, https://code.claude.com/docs/en/hooks)
+
+- **`PostToolUse` → `hookSpecificOutput.updatedToolOutput`:** "Replaces the tool's output with the provided value before it is sent to Claude." It works for built-in tools; `updatedMCPToolOutput` is for MCP tools only. It "only changes what Claude sees": the command has already run.
+- **Bash `tool_response`:** "an object with `stdout`, `stderr`, `interrupted`, and `isImage` fields". navitok returns the same object with only `stdout`/`stderr` trimmed. That the replacement keeps this object shape is navitok's reading of the docs and is *not verified in a live session yet*.
+- **Why not `PreToolUse` + `updatedInput`** (piping the command through a trimmer): `updatedInput` "Replaces the entire input object", "matching hooks run in parallel", and the docs give no rule for which of several `updatedInput`s wins. "With no `permissionDecision`, auto mode can deny the changed call." Rewriting the command would compete with other `PreToolUse` hooks and change what the user approved.
+- **Multiple sources:** "When a plugin is enabled, its hooks merge with your user and project hooks." Exit 0 with JSON applies the fields; exit 2 blocks. navitok's hook always exits 0, and any error leaves the output untouched.
+- **Graphify's hook (graphifyy 0.9.120, `graphify claude install`):** writes a section into `CLAUDE.md` and `.claude/settings.json` hooks: `PreToolUse` `Bash|Grep` → `graphify hook-guard search`, `Read|Glob` → `graphify hook-guard read`, and `SessionStart` `compact` → `hook-guard compact`. Observed output: `{"hookSpecificOutput": {"hookEventName": "PreToolUse", "additionalContext": "graphify: ..."}}` only, with no `updatedInput` and no permission decision. Different event and field from navitok's trimmer, so there is no conflict. Tested in `tests/test_trim_output.py` (both hooks on one Bash call, concurrently).
 

@@ -48,6 +48,10 @@ python3 <plugin>/scripts/integrations/graphify.py map [--apply]
 
 Sessions with and without a graph are calibrated separately. navitok works with Graphify. It is not an official integration, and everything works without it.
 
+## Output trimming (optional)
+
+Long test and build output can fill the context quickly. With `"trim_output": true` in `.navitok/config.json`, a `PostToolUse` hook gives Claude a trimmed copy of long Bash output (errors, tracebacks and the last lines kept, repeats collapsed) and saves the full output to `.navitok/logs/`. It is off by default, never changes the command, and works alongside other hooks such as Graphify's.
+
 ## Development
 
 Scripts use the Python 3.10+ standard library only.

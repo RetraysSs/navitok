@@ -10,11 +10,15 @@
 #   run.sh stop|end         session recorder, fully silent
 #   run.sh prompt           schedule engine (UserPromptSubmit): its stdout is the
 #                           Tier-1 line for Claude, usually empty
+#   run.sh trim             output trimming (PostToolUse, Bash): JSON on stdout
+#                           only when trimming is enabled and the output is long
 dir="$(dirname "$0")/../scripts"
 for py in python3 python; do
   if "$py" -c "import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)" </dev/null >/dev/null 2>&1; then
     if [ "$1" = "prompt" ]; then
       "$py" "$dir/schedule.py" hook 2>/dev/null
+    elif [ "$1" = "trim" ]; then
+      "$py" "$dir/trim_output.py" hook 2>/dev/null
     elif [ "$1" = "start" ]; then
       # All three scripts need the same hook JSON, so read stdin once.
       payload="$(cat)"

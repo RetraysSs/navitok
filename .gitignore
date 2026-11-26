@@ -18,3 +18,6 @@ Thumbs.db
 # Maintainer-only Claude Code instructions (kept local)
 CLAUDE.md
 CLAUDE.local.md
+
+# Graphify knowledge graph (works with Graphify; local, rebuilt with `graphify update .`)
+graphify-out/
