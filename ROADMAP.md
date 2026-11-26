@@ -183,6 +183,10 @@ The roadmap has two halves with very different update costs:
 
 `ROADMAP.md` is rendered from both files by a script, so it is always current without Claude rewriting it.
 
+**Scripts and `plan.json`:** a script may change `plan.json` only through an explicit command the user runs (`superpowers.py ingest`, `graphify.py apply`, `graphify.py map --apply`). Hooks never write `plan.json`.
+
+`files_predicted` / `lines_predicted` (§10.5) hold the scope Graphify predicted for a task, next to the actual `files_touched` / `lines_changed`, so calibration can later learn a scope correction.
+
 ### 4.2 Three update tiers
 
 | Tier | What happens | When | Cost |
@@ -656,7 +660,9 @@ The same schema is used for `docs/dogfood/ledger.jsonl`.
       "type": "feature",
       "size": "M",
       "files_touched": 4,
+      "files_predicted": 5,
       "lines_changed": 220,
+      "lines_predicted": 180,
       "est_pct": [12, 20],
       "actual_pct": 17,
       "max_step_pct": 3.1

@@ -72,9 +72,13 @@ def plan_tasks(nav):
     for rel in data.get("releases") or []:
         for t in (rel.get("tasks") or []) if isinstance(rel, dict) else []:
             if isinstance(t, dict) and t.get("id"):
+                sc = t.get("scope") if isinstance(t.get("scope"), dict) else {}
                 out[t["id"]] = {"release": rel.get("id"), "status": t.get("status", "todo"),
                                 "type": t.get("type"), "size": t.get("size"), "files": t.get("files"),
-                                "est_pct": t.get("est_pct")}
+                                "est_pct": t.get("est_pct"),
+                                # Graphify's predicted scope, kept next to the actuals so
+                                # calibration can learn a scope correction later (v0.12).
+                                "files_predicted": sc.get("files"), "lines_predicted": sc.get("lines")}
     return out
 
 
@@ -86,7 +90,8 @@ def finished_tasks(before, after):
         if t["status"] == "done" and (before.get(tid) or {}).get("status") != "done":
             est = t.get("est_pct")
             out.append({"id": tid, "release": t["release"], "type": t["type"], "size": t["size"],
-                        "files": t["files"], "est_pct": est if isinstance(est, list) and len(est) == 2 else None,
+                        "files": t["files"], "files_predicted": t.get("files_predicted"),
+                        "lines_predicted": t.get("lines_predicted"), "est_pct": est if isinstance(est, list) and len(est) == 2 else None,
                         "actual_pct": None, "max_step_pct": None})
     return out
 

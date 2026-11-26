@@ -25,6 +25,7 @@ import plan as planmod  # noqa: E402
 from test_calibrate import LOW, NOW, history, rec  # noqa: E402
 
 SCRIPT = ROOT / "scripts" / "integrations" / "graphify.py"
+TS = "2026-11-26T12:00:00Z"
 
 
 def node(nid, label, src, line):
@@ -226,6 +227,36 @@ class Hook(unittest.TestCase):
         r = hook_session.build_record({"session_id": "s", "start": {}, "helpers": ["graphify"]})
         self.assertEqual(r["helpers"], ["graphify"])
         self.assertEqual(hook_session.build_record({"session_id": "s", "start": {}})["helpers"], [])
+
+
+class PredictedScope(unittest.TestCase):
+    """v0.12: Graphify's predicted scope is recorded next to the actuals."""
+
+    def test_finished_tasks_carry_predicted_scope(self):
+        with tempfile.TemporaryDirectory() as d:
+            nav = Path(d) / ".navitok"
+            nav.mkdir()
+            p = sample_plan()
+            gf.annotate(p, GRAPH)
+            (nav / "plan.json").write_text(json.dumps(p), encoding="utf-8")
+            before = hook_session.plan_tasks(nav)
+            p["releases"][0]["tasks"][0]["status"] = "done"
+            p["releases"][0]["tasks"][1]["status"] = "done"
+            (nav / "plan.json").write_text(json.dumps(p), encoding="utf-8")
+            done = {t["id"]: t for t in hook_session.finished_tasks(before, hook_session.plan_tasks(nav))}
+        self.assertEqual(done["v0.1-t1"]["files_predicted"], 2)
+        self.assertGreater(done["v0.1-t1"]["lines_predicted"], 0)
+        self.assertIsNone(done["v0.1-t2"]["files_predicted"])    # hand-set count, no scope
+        r = hook_session.ledger.new_record(ts_start=TS, ts_end=TS, tasks=list(done.values()))
+        self.assertEqual(hook_session.ledger.validate(r), [])
+
+    def test_ledger_rejects_bad_counts(self):
+        led = hook_session.ledger
+        for bad in (-1, 1.5, True, "3"):
+            r = led.new_record(ts_start=TS, ts_end=TS, tasks=[{"id": "x", "files_predicted": bad}])
+            self.assertTrue(any("files_predicted" in e for e in led.validate(r)), bad)
+        self.assertEqual(led.validate(led.new_record(ts_start=TS, ts_end=TS, tasks=[{"id": "x", "files_predicted": None,
+                                                             "files_touched": 3}])), [])
 
 
 class Cli(unittest.TestCase):

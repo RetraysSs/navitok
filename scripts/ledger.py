@@ -95,6 +95,10 @@ def validate(record):
             if not isinstance(t, dict) or "id" not in t:
                 errors.append(f"tasks[{i}] must be an object with an id")
                 continue
+            for key in ("files_touched", "files_predicted", "lines_changed", "lines_predicted"):
+                v = t.get(key)
+                if v is not None and (isinstance(v, bool) or not isinstance(v, int) or v < 0):
+                    errors.append(f"tasks[{i}].{key} must be a non-negative integer or null")
             est = t.get("est_pct")
             if est is not None and not (isinstance(est, list) and len(est) == 2
                                         and all(_is_num(x) for x in est) and est[0] <= est[1]):
