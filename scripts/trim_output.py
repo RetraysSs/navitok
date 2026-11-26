@@ -30,10 +30,32 @@ leaves the output untouched. Stdlib only, local files only.
 from __future__ import annotations
 
 import json
-import re
+import os
 import sys
-from datetime import datetime, timezone
-from pathlib import Path
+
+
+def _hook_fast_exit():
+    """Hook mode only, before the heavier imports below: read stdin, and exit 0
+    at once when the payload's project has trimming off. Returns the raw stdin
+    when trimming may be on (hook_main then reuses it)."""
+    try:
+        raw = sys.stdin.buffer.read()
+        payload = json.loads(raw.decode("utf-8-sig", errors="replace") or "{}")
+        with open(os.path.join(payload.get("cwd") or ".", ".navitok", "config.json"),
+                  encoding="utf-8") as fh:
+            opt = json.load(fh).get("trim_output")
+    except Exception:
+        sys.exit(0)  # no payload, no config or unreadable: off, the output stays
+    if opt is True or (isinstance(opt, dict) and opt.get("enabled") is True):
+        return raw
+    sys.exit(0)
+
+
+_HOOK_RAW = _hook_fast_exit() if __name__ == "__main__" and sys.argv[1:2] == ["hook"] else None
+
+import re  # noqa: E402
+from datetime import datetime, timezone  # noqa: E402
+from pathlib import Path  # noqa: E402
 
 DEFAULTS = {"max_lines": 120, "head": 10, "tail": 40, "context": 3, "keep_logs": 20}
 LOG_DIR = "logs"
@@ -210,7 +232,7 @@ def hook_main(stdin=None):
 def main(argv=None):
     argv = sys.argv[1:] if argv is None else argv
     if argv[:1] == ["hook"]:
-        return hook_main()
+        return hook_main(_HOOK_RAW)
     if argv[:1] == ["file"] and len(argv) >= 2:
         if hasattr(sys.stdout, "reconfigure"):
             sys.stdout.reconfigure(encoding="utf-8")

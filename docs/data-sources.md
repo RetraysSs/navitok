@@ -227,6 +227,24 @@ Graphify is a third-party tool (Graphify-Labs/graphify, Apache-2.0; PyPI package
 - **Cost of building the map:** code goes through tree-sitter and costs no tokens (`graphify update .`). Other files (docs, PDFs, images, media) go through LLM extraction in the session (`/graphify .`). navitok prices that by the number of non-code files. The size bands (≤20 S, ≤100 M, else L) and the subagent multiplier are **unmeasured assumptions**.
 - **Scope heuristic (navitok's own):** title words (4+ letters, minus stop words) are matched against node labels and file names. Files = the matched nodes' files plus their direct neighbours'. Lines = the matched nodes' spans (to the next node in the same file, 20 for the last one, capped at 200). The line count is recorded for calibration only; the file count feeds `estimate.py`'s files factor.
 
+## Trim hook overhead per Bash call (measured 2026-11-26, Windows 11, Git Bash `sh`, Python 3.14)
+
+The hook stays registered for every Bash call, because editing `hooks.json` per user would break on plugin updates. So the off path has to be cheap.
+
+| Case | Before (v0.13) | After (v1.0) |
+|---|---|---|
+| no `config.json` | 231 ms | **19 ms** |
+| `config.json` with `"trim_output": false` (wizard layout) | ~230 ms | **20 ms** |
+| `trim_output` as an object with `enabled: false` (falls through to Python) | ~230 ms | 223 ms |
+| trimming on, short output | ~236 ms | 236 ms |
+| trimming on, 303-line output, trimmed | ~238 ms | 238 ms |
+
+Mean of 20 runs of `sh hooks/run.sh trim < payload` (10 for the last row), timed with `date +%s%N`. For comparison: a bare `sh -c true` takes 22 ms and `python -c pass` 36 ms on this machine. Live check in `claude -p --plugin-dir .` (debug log): `PostToolUse:Bash ... finished with status 0 (60ms)` with trimming off, including Claude Code's own spawn cost, and 287–297 ms with it on.
+
+- **Where the old cost came from:** `run.sh` probed `python3`, which here is the Microsoft Store alias that fails, then `python`, then started `trim_output.py` and its imports. That was three process starts plus a `dirname` fork before anything was decided.
+- **Fast path:** `run.sh trim` first reads `$CLAUDE_PROJECT_DIR/.navitok/config.json` and `./.navitok/config.json` with shell builtins only (no fork). It exits when every `trim_output` line reads `"trim_output":false` once blanks are removed, or when there is no such line or no file. Any other layout falls through to Python, which decides exactly, so a layout the shell cannot read is never wrongly off. In Python, `trim_output.py hook` reads stdin and the config with `json`/`os` only, before `re`, `datetime` and `pathlib` are imported.
+- **`CLAUDE_PROJECT_DIR` is set for plugin hooks:** verified live (trimming worked with the fast path in place). Limit: a `.navitok/` that exists only in the session's current folder, and not in the project dir or the hook's cwd, is not seen by the fast path. Trimming was only meant for the project root anyway, because the Python check reads `<payload cwd>/.navitok/config.json`.
+
 ## Setup doctor (checked 2026-11-26) — `scripts/doctor.py`
 
 - **Statusline scope:** the statusline docs name user (`~/.claude/settings.json`) and project settings for `statusLine`. The settings docs give the precedence "managed settings, command line, project local, shared project, user" (highest first) and do not say whether `.claude/settings.local.json` may hold `statusLine`. The doctor reads, in that order, `.claude/settings.local.json`, `.claude/settings.json` and `~/.claude/settings.json`, and reports the first `statusLine.command` it finds. It ignores managed settings and the command line, and it never writes. Neither page says whether a plugin can ship a statusline, so navitok still proposes the `statusline.py setup` change to the user's settings.

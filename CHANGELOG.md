@@ -3,6 +3,13 @@
 All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Changed
+
+- **Trim hook off path: 231 ms → 19 ms per Bash call** (Windows, measured). `hooks/run.sh trim` decides "off" with shell builtins before any Python starts: no config, no `trim_output` line, or only `"trim_output":false`. Every other layout still goes to Python. `trim_output.py hook` checks the config before its heavier imports. The hook stays registered (editing `hooks.json` per user would break on plugin updates). Measurements are in `docs/data-sources.md`.
+- Hook tests set `CLAUDE_PROJECT_DIR`, as Claude Code does. 3 new tests in `tests/test_run_sh_fast.py` (off layouts silent, on layouts still trimmed, hook cwd also checked).
+
 ## [0.13.0] - 2026-11-26
 
 ### Added

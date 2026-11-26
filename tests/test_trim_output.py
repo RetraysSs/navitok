@@ -21,6 +21,11 @@ sys.path.insert(0, str(ROOT / "scripts"))
 import trim_output as tr  # noqa: E402
 
 RUN_SH = ROOT / "hooks" / "run.sh"
+
+
+def hook_env(d):
+    """Claude Code sets CLAUDE_PROJECT_DIR for hook commands; run.sh's fast path reads it."""
+    return dict(os.environ, CLAUDE_PROJECT_DIR=str(d))
 GRAPHIFY = shutil.which("graphify")
 ERROR_MSG = "AssertionError: 41 != 42 : invoice total off by one (Ünïcode)"
 
@@ -134,12 +139,12 @@ class Acceptance(unittest.TestCase):
         with tempfile.TemporaryDirectory() as t:
             d = project(t)
             out, err = long_test_run(d)
-            r = subprocess.run(["sh", str(RUN_SH), "trim"], input=json.dumps(payload(d, out, err)).encode("utf-8"),
+            r = subprocess.run(["sh", str(RUN_SH), "trim"], env=hook_env(d), input=json.dumps(payload(d, out, err)).encode("utf-8"),
                                capture_output=True)
             self.assertEqual(r.returncode, 0)
             res = json.loads(r.stdout.decode("utf-8"))
             self.assertIn(ERROR_MSG, res["hookSpecificOutput"]["updatedToolOutput"]["stderr"])
-            short = subprocess.run(["sh", str(RUN_SH), "trim"], input=json.dumps(payload(d, "ok\n")).encode("utf-8"),
+            short = subprocess.run(["sh", str(RUN_SH), "trim"], env=hook_env(d), input=json.dumps(payload(d, "ok\n")).encode("utf-8"),
                                    capture_output=True)
             self.assertEqual((short.returncode, short.stdout), (0, b""))   # silent
 
@@ -190,7 +195,7 @@ class GraphifyCoexistence(unittest.TestCase):
             result = {}
             th = threading.Thread(target=self.graphify_hook, args=(d, result))
             th.start()
-            ours = subprocess.run(["sh", str(RUN_SH), "trim"], input=json.dumps(payload(d, out, err)).encode("utf-8"),
+            ours = subprocess.run(["sh", str(RUN_SH), "trim"], env=hook_env(d), input=json.dumps(payload(d, out, err)).encode("utf-8"),
                                   capture_output=True)
             th.join(30)
             g = result["graphify"]
