@@ -50,6 +50,15 @@ class Validate(unittest.TestCase):
         self.assertTrue(planmod.validate(p))
 
 
+class ExecutionField(unittest.TestCase):
+    def test_bad_execution_is_a_validation_error(self):
+        p = sample()
+        p["releases"][0]["tasks"][0]["execution"] = "swarm"
+        self.assertIn("execution", " | ".join(planmod.validate(p)))
+        p["releases"][0]["tasks"][0]["execution"] = "subagent"
+        self.assertEqual(planmod.validate(p), [])
+
+
 class Price(unittest.TestCase):
     def test_fills_estimates(self):
         p, over = planmod.price(sample())

@@ -25,6 +25,17 @@ alias navitok-watch='python3 <plugin>/scripts/watch.py'
 
 It uses `curses` where available. Otherwise, on Windows for example, it redraws with ANSI escape codes, also in the legacy console.
 
+## Works with Superpowers
+
+If you plan with [Superpowers](https://github.com/obra/superpowers) (brainstorming → writing-plans), navitok can import the plan file and turn it into versioned releases that each fit one session, with a schedule. The plan file is only read, never changed.
+
+```bash
+python3 <plugin>/scripts/integrations/superpowers.py detect
+python3 <plugin>/scripts/integrations/superpowers.py ingest [--execution inline|subagent]
+```
+
+navitok works with Superpowers. It is not an official integration, and everything works without it.
+
 ## Development
 
 Scripts use the Python 3.10+ standard library only.

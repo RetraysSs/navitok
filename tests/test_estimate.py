@@ -133,6 +133,27 @@ class Totals(unittest.TestCase):
             estimate.estimate(["docs"])
 
 
+class Execution(unittest.TestCase):
+    def test_subagent_multiplier(self):
+        base = estimate.estimate_task({"type": "feature", "size": "S"})
+        sub = estimate.estimate_task({"type": "feature", "size": "S", "execution": "subagent"})
+        m = estimate.EXECUTION["subagent"]
+        self.assertEqual(sub["est_pct"], [round(base["est_pct"][0] * m, 2), round(base["est_pct"][1] * m, 2)])
+        self.assertTrue(any("subagent" in n for n in sub["notes"]))
+        inline = estimate.estimate_task({"type": "feature", "size": "S", "execution": "inline"})
+        self.assertEqual(inline["est_pct"], base["est_pct"])
+
+    def test_unknown_execution_rejected(self):
+        with self.assertRaises(estimate.EstimateError):
+            estimate.estimate_task({"type": "feature", "size": "S", "execution": "swarm"})
+
+    def test_heuristics_documents_the_multiplier(self):
+        text = (ROOT / "skills/navitok/references/heuristics.md").read_text(encoding="utf-8")
+        m = re.search(r"^\| subagent \| ×([\d.]+) \|", text, re.M)
+        self.assertIsNotNone(m)
+        self.assertEqual(float(m.group(1)), estimate.EXECUTION["subagent"])
+
+
 class DocsInSync(unittest.TestCase):
     def test_heuristics_table_matches_script(self):
         text = (ROOT / "skills/navitok/references/heuristics.md").read_text(encoding="utf-8")

@@ -51,6 +51,18 @@ Keep the conversation short. Each question and each file read costs the user's u
 
 To change the plan later, edit `plan.json` and run `price` again. To refresh only the roadmap view, run `render`.
 
+## Works with Superpowers plans
+
+If the project has Superpowers plans (`docs/superpowers/plans/*.md`, from its writing-plans skill), offer to import them instead of breaking the project down yourself. Never edit those plan files. navitok's output goes under `.navitok/` only.
+
+1. Do step 1 of the plan flow (plan and mode) first.
+2. Run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/integrations/superpowers.py" ingest` (`python` on Windows). Add `--plan-file <path>` for a plan kept somewhere else, and `--force` to replace an existing `plan.json` (ask the user first).
+   - It turns each `### Task N` into a task. Type comes from the title's keywords and size from the step count. Done tasks are the ones with all boxes checked. It packs the tasks into releases (`v0.1`, ...) that each fit the threshold, adds a wrapup task to each, prices them and renders `ROADMAP.md`.
+   - **Execution:** `--execution auto` (default) prices tasks for subagent-driven-development (×1.5, an unmeasured assumption), because that is what the plan header recommends. On Pro + strict the script prints a line recommending inline execution (`superpowers:executing-plans`). Pass that recommendation on, and re-run with `--execution inline` if the user agrees.
+3. Review the inferred `type`/`size` in `plan.json` against the plan's task titles. Fix any that are clearly wrong, then run `plan.py price`. Report as in step 7 of the plan flow.
+
+Without Superpowers nothing changes: use the plan flow above.
+
 ## Schedule and notices
 
 A `UserPromptSubmit` hook runs `schedule.py` before every prompt. It writes `.navitok/schedule.json` (script-owned: never edit it) and refreshes the Schedule section of `.navitok/ROADMAP.md`. It costs no tokens and is silent unless the fit status changes.
@@ -121,4 +133,4 @@ Give them the real path: `${CLAUDE_PLUGIN_ROOT}` expanded. Suggest an alias such
 
 ## Not available yet
 
-Superpowers and Graphify integration, output trimming and `/navitok:setup` arrive in later navitok releases. If the user asks for them, say so. Do not invent usage numbers.
+Graphify integration, output trimming and `/navitok:setup` arrive in later navitok releases. If the user asks for them, say so. Do not invent usage numbers.

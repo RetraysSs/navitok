@@ -171,6 +171,8 @@ def validate(plan):
                 estimate.files_factor(task.get("files"))
             except estimate.EstimateError as exc:
                 errs.append(f"{tw}: {exc}")
+            if task.get("execution", "inline") not in estimate.EXECUTION:
+                errs.append(f"{tw}.execution must be one of {sorted(estimate.EXECUTION)}")
     return errs
 
 

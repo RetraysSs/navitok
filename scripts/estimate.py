@@ -51,6 +51,11 @@ PLANS = {"pro": 1.0, "max5x": 0.2, "max20x": 0.05, "api": 1.0}
 PLAN_ALIASES = {"max 5x": "max5x", "max-5x": "max5x", "max_5x": "max5x",
                 "max 20x": "max20x", "max-20x": "max20x", "max_20x": "max20x"}
 
+# Execution style (v0.10). "subagent" = Superpowers' subagent-driven-development:
+# a fresh implementer and a fresh reviewer context per task. The multiplier is
+# an unmeasured cold-start assumption (see heuristics.md); calibrate later.
+EXECUTION = {"inline": 1.0, "subagent": 1.5}
+
 # Cold-start confidence (0-100). Low on purpose: one maintainer's data.
 CONF_KNOWN = 30
 CONF_UNKNOWN_SIZE = 20
@@ -113,7 +118,13 @@ def estimate_task(task, plan="pro", learned=None):
     else:
         size_used = size
 
-    mult = SIZE[size_used] * files_factor(task.get("files")) * PLANS[plan]
+    execution = task.get("execution") or "inline"
+    if execution not in EXECUTION:
+        raise EstimateError(f"execution must be one of {sorted(EXECUTION)}, got {execution!r}")
+    if execution != "inline":
+        notes.append(f"{execution}-driven: x{EXECUTION[execution]}")
+
+    mult = SIZE[size_used] * files_factor(task.get("files")) * PLANS[plan] * EXECUTION[execution]
     return {
         "id": task.get("id"),
         "type": ttype or None,

@@ -3,6 +3,22 @@
 All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.10.0] - 2026-11-26
+
+### Added
+
+- `scripts/integrations/superpowers.py` (ROADMAP v0.10): navitok **works with** Superpowers plans. It reads them only and copies none of Superpowers' code.
+  - `detect`: finds Superpowers in Claude Code's plugin registry (undocumented, marked unstable in `docs/data-sources.md`; missing means "not installed") and lists `docs/superpowers/plans/*.md`.
+  - `ingest`: parses `### Task N:` sections (the `**Files:**` list, checkbox steps, fenced code skipped) into a draft `.navitok/plan.json`.
+    - Type comes from title keywords, size from the step count, and done tasks from checked boxes.
+    - Tasks are packed greedily into `v0.N` releases under the threshold, each with a wrapup task. Each task keeps a `source` pointer to its plan file and task number.
+    - It then prices the draft and renders `ROADMAP.md`.
+    - It refuses to overwrite an existing `plan.json` without `--force`, and it never opens a plan file for writing.
+  - `--execution auto|subagent|inline`. On Pro + strict with subagents it prints a recommendation to run inline instead, with both upper estimates.
+- `estimate.py`: optional task field `execution` (`inline` ×1.0, `subagent` ×1.5). `plan.py` validates it. The ×1.5 is an unmeasured assumption, documented in `heuristics.md` and kept in sync by a test.
+- `SKILL.md` "Works with Superpowers plans" flow, README section, `docs/data-sources.md` entry for the plan format (checked against Superpowers 7.0.2).
+- 22 tests: detection (registry present, missing or broken), parsing (header, files with line suffixes, code-fence checkboxes, done status, inferred type/size), release packing under the threshold, a task too big on its own, the multiplier and the recommendation, the CLI (overwrite guard, no plans), a byte-and-mtime check that the plan file is untouched, end-to-end plan → ROADMAP → schedule, and the v0.4 flow without Superpowers.
+
 ## [0.9.0] - 2026-11-25
 
 ### Added

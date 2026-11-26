@@ -37,6 +37,15 @@ Unknown or missing size is priced as **L** (confidence at most 20). A wrong gues
 
 The first 3 files are free. Each further file adds **0.1** to the multiplier, up to **2.0** in total. A missing `files` value counts as no adjustment.
 
+## Execution style (v0.10)
+
+| Execution | Multiplier |
+|---|---|
+| inline | ×1.0 |
+| subagent | ×1.5 |
+
+`subagent` is set when a Superpowers plan will run with subagent-driven-development, which starts a fresh implementer context and a fresh reviewer context for each task. **×1.5 is an unmeasured assumption.** No dogfood sprint has used that workflow yet. On Pro in strict mode, navitok recommends inline execution (`superpowers:executing-plans`) instead.
+
 ## Totals, threshold, confidence
 
 - **Total** = sum of task lows and sum of task highs. Ranges are not pooled, so the total stays conservative.

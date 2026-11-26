@@ -203,3 +203,14 @@ Only field names and token counts were inspected. Transcripts hold prompt text, 
   - It is **local only**, so it excludes claude.ai and other machines.
   - Converting tokens to session % needs calibration (ROADMAP §10.3).
 - Old transcripts are deleted after `cleanupPeriodDays` (default 30).
+
+## Superpowers (checked 2026-11-26, Superpowers 7.0.2) — works with, read-only
+
+Superpowers is a third-party plugin (obra/superpowers, MIT). navitok only detects it and reads its plan files. It never copies its code and never writes its files.
+
+- **Plan files (documented by Superpowers):** the `writing-plans` skill (read from the installed 7.0.2 copy) saves plans to `docs/superpowers/plans/YYYY-MM-DD-<feature-name>.md`. A user preference can override that location: use `--plan-file` then.
+  - **Header:** `# <Feature> Implementation Plan`, a `**Goal:**` line, and a blockquote that names `superpowers:subagent-driven-development (recommended) or superpowers:executing-plans`.
+  - **Tasks:** `### Task N: <name>`. Each has an optional `**Files:**` list (`- Create:`, `- Modify:` with an optional `:start-end` line suffix, `- Test:`, each path in backticks), an `**Interfaces:**` block, and steps as `- [ ] **Step N: ...**` checkboxes. A checked box marks a done step. Fenced code blocks inside steps can contain anything, including checkbox-like lines, so the parser skips fenced blocks.
+  - **Execution choice:** at handoff the user picks *Subagent-driven* (a fresh implementer and a fresh reviewer per task, plus a whole-branch review) or *Native/inline* (`executing-plans`). The choice is not written to the plan file, so navitok's `--execution auto` assumes the plan's recommendation (subagent-driven).
+- **Detection — UNSTABLE, undocumented:** `~/.claude/plugins/installed_plugins.json`, `{"version": 2, "plugins": {"superpowers@<marketplace>": [{"scope", "installPath", "version", ...}]}}`. Behind `detect()` in `scripts/integrations/superpowers.py`. Fallback: a missing or unreadable registry means "not installed". Ingestion only needs the plan files, so it works either way.
+- **Cost multiplier:** subagent-driven execution is priced ×1.5. That number is an **unmeasured assumption**, not data (see `heuristics.md`).
