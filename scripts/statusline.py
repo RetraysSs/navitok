@@ -19,7 +19,13 @@
       is only run after the user explicitly approved the shown change; it keeps
       a backup next to the file. `remove` restores the wrapped command.
 
-Speed: imports only the standard library, reads at most three small files,
+      When the context reaches `context_hint_tokens` (default 150k, in
+      .navitok/config.json; 0 or false turns it off), it adds
+          ctx 160k · checkpoint + new session
+      because every message re-reads the whole context: /navitok:checkpoint
+      writes the handoff, and a fresh session continues from it.
+
+Speed: imports only the standard library, reads at most four small files,
 no network, no model calls.
 """
 
@@ -39,6 +45,8 @@ BAR_CELLS = 5
 SEP = " · "
 WRAP_SEP = " │ "
 BACKUP_SUFFIX = ".navitok-backup"
+CONTEXT_HINT_TOKENS = 150_000  # default; .navitok/config.json `context_hint_tokens` (0 = off)
+CONTEXT_HINT = "checkpoint + new session"
 
 
 def _num(x):
@@ -97,7 +105,46 @@ def bar(pct, cells=BAR_CELLS):
     return "▓" * full + "░" * (cells - full)
 
 
+def context_tokens(payload):
+    """Tokens in the context after the last response: what every next message
+    re-reads. Statusline docs: context_window.total_input_tokens (input + cache
+    creation + cache read); falls back to the current_usage sum. None if unknown."""
+    cw = payload.get("context_window")
+    if not isinstance(cw, dict):
+        return None
+    n = cw.get("total_input_tokens")
+    if _num(n):
+        return n
+    cu = cw.get("current_usage")
+    if isinstance(cu, dict):
+        vals = [cu.get(k) for k in ("input_tokens", "cache_creation_input_tokens", "cache_read_input_tokens")]
+        if any(_num(v) for v in vals):
+            return sum(v for v in vals if _num(v))
+    return None
+
+
+def context_hint(nav, payload):
+    """'ctx 160k · checkpoint + new session' once the context reaches the
+    threshold, else ''. Silent when the field is missing or the hint is off."""
+    cfg = _read_json(nav / "config.json") or {}
+    limit = cfg.get("context_hint_tokens", CONTEXT_HINT_TOKENS)
+    if limit is False or limit is None:
+        return ""
+    if not _num(limit) or limit < 0:
+        limit = CONTEXT_HINT_TOKENS
+    n = context_tokens(payload)
+    if not limit or n is None or n < limit:
+        return ""
+    return f"ctx {n / 1000:.0f}k{SEP}{CONTEXT_HINT}"
+
+
 def segment(nav, payload):
+    line = _segment(nav, payload)
+    hint = context_hint(nav, payload)
+    return line + SEP + hint if hint else line
+
+
+def _segment(nav, payload):
     """One line from schedule.json, calibration.json and the live rate_limits."""
     sched = _read_json(nav / "schedule.json")
     cal = _read_json(nav / "calibration.json") or {}

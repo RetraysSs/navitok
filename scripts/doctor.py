@@ -1,11 +1,12 @@
 """navitok doctor and first-run wizard (ROADMAP v0.13), behind /navitok:setup.
 
   doctor.py check [--project-dir DIR] [--json]
-      One table of everything navitok can use: Python, the project's .navitok/
+      One table of everything navitok can use: Python, a POSIX shell (Git Bash
+      on Windows, `sh -c 'echo ok'` is the only command it runs), the project's .navitok/
       state, the account usage source, the statusline, output trimming,
       Superpowers and Graphify. Each row: ✅ / ❌, why it helps, and the command
       that would fix a gap. Read-only: it reads local files and PATH, runs
-      nothing, installs nothing, changes nothing.
+      only that shell probe, installs nothing, changes nothing.
 
   doctor.py wizard [--plan P] [--mode strict|flex] [--trim on|off]
                    [--statusline on|off] [--project-dir DIR]
@@ -86,6 +87,60 @@ def check_python(version=None, executable=None):
     return _row("python", "Python", ok, f"{'.'.join(map(str, v))} ({executable or sys.executable})",
                 "navitok's scripts, hooks and statusline need Python 3.10+ (stdlib only)",
                 ["install Python 3.10 or newer from https://www.python.org/downloads/"], required=True)
+
+
+GIT_FOR_WINDOWS = ["install Git for Windows (it includes Git Bash): https://git-scm.com/downloads/win",
+                   "$ winget install --id Git.Git -e",
+                   "then restart Claude Code; if Git Bash is installed somewhere Claude Code does not "
+                   "find it, set CLAUDE_CODE_GIT_BASH_PATH to its bash.exe"]
+
+
+def find_shell(which=shutil.which, env=None, nt=None):
+    """Path of the POSIX shell Claude Code would run hook and statusline commands
+    in, or None. On Windows that is Git Bash (hooks docs): CLAUDE_CODE_GIT_BASH_PATH,
+    then sh/bash on PATH (never System32's bash.exe, which is WSL), then the
+    bash.exe next to git.exe."""
+    env = os.environ if env is None else env
+    nt = (os.name == "nt") if nt is None else nt
+    if not nt:
+        return which("sh")
+    cand = [env.get("CLAUDE_CODE_GIT_BASH_PATH"), which("sh"), which("bash")]
+    git = which("git")
+    if git:  # ...\Git\cmd\git.exe or ...\Git\mingw64\bin\git.exe
+        for up in Path(git).parents:
+            if up.name.lower() == "git":
+                cand.append(str(up / "bin" / "bash.exe"))
+                break
+    for c in cand:
+        if c and "system32" not in c.lower() and Path(c).is_file():
+            return c
+    return None
+
+
+def _run_sh(sh):
+    import subprocess
+    res = subprocess.run([sh, "-c", "echo ok"], capture_output=True, timeout=10)
+    return res.returncode == 0 and res.stdout.strip() == b"ok"
+
+
+def check_shell(which=shutil.which, run=_run_sh, env=None, nt=None):
+    nt = (os.name == "nt") if nt is None else nt
+    sh = find_shell(which, env, nt)
+    try:
+        ok = bool(sh) and run(sh)
+    except Exception:  # OSError, timeout: a shell that does not run is a gap
+        ok = False
+    if ok:
+        detail = f"works: {sh}"
+    elif sh:
+        detail = f"found but `sh -c 'echo ok'` failed: {sh}"
+    else:
+        detail = "no Git Bash found" if nt else "no sh on PATH"
+    fix = GIT_FOR_WINDOWS if nt else ["install a POSIX sh (it is part of every Linux and macOS base system)"]
+    return _row("shell", "POSIX shell (sh)", ok, detail,
+                "Claude Code runs navitok's hooks and statusline as shell commands: sh on macOS and "
+                "Linux, Git Bash on Windows (without it, PowerShell, where they fail)",
+                fix, required=True)
 
 
 def check_project(project_dir):
@@ -191,9 +246,9 @@ def check_graphify(project_dir, which=shutil.which):
                 fix)
 
 
-def run_checks(project_dir=".", home=None, which=shutil.which):
+def run_checks(project_dir=".", home=None, which=shutil.which, run_sh=_run_sh):
     home = home or os.path.expanduser("~")
-    return [check_python(), check_project(project_dir), check_usage(project_dir, home),
+    return [check_python(), check_shell(which, run_sh), check_project(project_dir), check_usage(project_dir, home),
             check_statusline(project_dir, home), check_trimming(project_dir),
             check_superpowers(project_dir, home), check_graphify(project_dir, which)]
 

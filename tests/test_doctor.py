@@ -2,10 +2,12 @@
 
 import io
 import json
+import os
 import sys
 import tempfile
 import time
 import unittest
+from unittest import mock
 from contextlib import redirect_stdout
 from pathlib import Path
 
@@ -28,6 +30,10 @@ class Base(unittest.TestCase):
         self.proj = base / "proj Ü"
         self.home.mkdir()
         self.proj.mkdir()
+        env = mock.patch.dict("os.environ")
+        env.start()
+        self.addCleanup(env.stop)
+        os.environ.pop("CLAUDE_CODE_GIT_BASH_PATH", None)
 
     def tearDown(self):
         self.tmp.cleanup()
@@ -44,10 +50,10 @@ class CleanMachine(Base):
     def test_reports_every_gap_and_changes_nothing(self):
         before = files(self.home), files(self.proj)
         rows = self.rows()
-        self.assertEqual(list(rows), ["python", "project", "usage", "statusline", "trimming",
+        self.assertEqual(list(rows), ["python", "shell", "project", "usage", "statusline", "trimming",
                                       "superpowers", "graphify"])
         self.assertTrue(rows["python"]["ok"])
-        for key in ("project", "usage", "statusline", "trimming", "superpowers", "graphify"):
+        for key in ("shell", "project", "usage", "statusline", "trimming", "superpowers", "graphify"):
             self.assertFalse(rows[key]["ok"], key)
             self.assertTrue(rows[key]["fix"], key)
         self.assertIn("no .navitok/", rows["project"]["detail"])
@@ -59,8 +65,8 @@ class CleanMachine(Base):
         self.assertIn("$ uv tool install graphifyy", rows["graphify"]["fix"])
         self.assertTrue(any("graphify update ." in c for c in rows["graphify"]["fix"]))
         text = doctor.render(list(rows.values()))
-        self.assertEqual(text.count(doctor.GAP), 6)
-        self.assertIn("Required: all OK.", text)
+        self.assertEqual(text.count(doctor.GAP), 7)
+        self.assertIn("Required: missing POSIX shell (sh)", text)
         self.assertIn("Nothing was installed or changed", text)
         self.assertIn("`uv tool install graphifyy`<br>or: pipx install graphifyy", text)
         self.assertEqual((files(self.home), files(self.proj)), before)  # read-only
@@ -75,7 +81,61 @@ class CleanMachine(Base):
         buf = io.StringIO()
         with redirect_stdout(buf):
             self.assertEqual(doctor.main(["check", "--json", "--project-dir", str(self.proj)]), 0)
-        self.assertEqual(len(json.loads(buf.getvalue())), 7)
+        self.assertEqual(len(json.loads(buf.getvalue())), 8)
+
+
+class Shell(unittest.TestCase):
+    def make(self, root, rel):
+        p = Path(root) / rel
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_bytes(b"")
+        return str(p)
+
+    def test_windows_without_git_bash_shows_how_to_install(self):
+        r = doctor.check_shell(which=NO_CLI, run=lambda sh: True, env={}, nt=True)
+        self.assertFalse(r["ok"])
+        self.assertTrue(r["required"])
+        self.assertEqual(r["detail"], "no Git Bash found")
+        self.assertIn("$ winget install --id Git.Git -e", r["fix"])
+        self.assertTrue(any("git-scm.com" in c for c in r["fix"]))
+        self.assertIn("Required: missing POSIX shell", doctor.render([r]))
+
+    def test_wsl_bash_in_system32_does_not_count(self):
+        with tempfile.TemporaryDirectory() as d:
+            wsl = self.make(d, "Windows/System32/bash.exe")
+            which = lambda n: wsl if n == "bash" else None  # noqa: E731
+            self.assertIsNone(doctor.find_shell(which, env={}, nt=True))
+
+    def test_git_bash_found_next_to_git_exe(self):
+        with tempfile.TemporaryDirectory() as d:
+            git = self.make(d, "Program Files Ü/Git/mingw64/bin/git.exe")
+            bash = self.make(d, "Program Files Ü/Git/bin/bash.exe")
+            which = lambda n: git if n == "git" else None  # noqa: E731
+            self.assertEqual(doctor.find_shell(which, env={}, nt=True), bash)
+            r = doctor.check_shell(which, run=lambda sh: True, env={}, nt=True)
+            self.assertTrue(r["ok"])
+            self.assertEqual(r["fix"], [])
+
+    def test_env_override_and_failing_shell(self):
+        with tempfile.TemporaryDirectory() as d:
+            bash = self.make(d, "tools/bash.exe")
+            env = {"CLAUDE_CODE_GIT_BASH_PATH": bash}
+            self.assertEqual(doctor.find_shell(NO_CLI, env=env, nt=True), bash)
+            r = doctor.check_shell(NO_CLI, run=lambda sh: False, env=env, nt=True)
+            self.assertFalse(r["ok"])
+            self.assertIn("failed", r["detail"])
+
+    def test_raising_probe_is_a_gap(self):
+        def boom(sh):
+            raise OSError("no exec")
+        r = doctor.check_shell(lambda n: "/bin/sh" if n == "sh" else None, run=boom, env={}, nt=False)
+        self.assertFalse(r["ok"])
+
+    def test_this_machine_has_a_working_shell(self):
+        r = doctor.check_shell()
+        if not r["ok"]:
+            self.skipTest("no POSIX shell here: " + r["detail"])
+        self.assertIn("works", r["detail"])
 
 
 class Detected(Base):

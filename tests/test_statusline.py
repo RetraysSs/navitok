@@ -90,6 +90,54 @@ class Segment(Base):
         self.assertFalse((other / ".navitok").exists())
         self.assertEqual(sl.render(b"\xff not json", now=NOW), "")
 
+    def ctx(self, tokens=None, usage=None):
+        p = payload(self.root)
+        cw = {"context_window_size": 200000, "used_percentage": None}
+        if tokens is not None:
+            cw["total_input_tokens"] = tokens
+        if usage is not None:
+            cw["current_usage"] = usage
+        p["context_window"] = cw
+        return sl.render(raw(p), now=NOW)
+
+    def test_context_hint_above_threshold_only(self):
+        self.schedule()
+        base = "v0.3 ▓▓▓░░ 62% · fits · week 31% · cold start"
+        self.assertEqual(self.ctx(149_999), base)
+        self.assertEqual(self.ctx(150_000), base + " · ctx 150k · checkpoint + new session")
+        self.assertEqual(self.ctx(160_400), base + " · ctx 160k · checkpoint + new session")
+        self.assertNotIn("/clear", self.ctx(500_000))
+
+    def test_context_hint_missing_fields_stay_silent(self):
+        self.schedule()
+        self.assertNotIn("ctx", sl.render(raw(payload(self.root)), now=NOW))   # no context_window
+        self.assertNotIn("ctx", self.ctx())                                     # no token field
+        self.assertNotIn("ctx", self.ctx(usage=None))
+        p = payload(self.root)
+        p["context_window"] = "broken"
+        self.assertNotIn("ctx", sl.render(raw(p), now=NOW))
+
+    def test_context_hint_falls_back_to_current_usage(self):
+        self.schedule()
+        line = self.ctx(usage={"input_tokens": 10, "output_tokens": 999_999,
+                               "cache_creation_input_tokens": 1_000, "cache_read_input_tokens": 170_000})
+        self.assertTrue(line.endswith(" · ctx 171k · checkpoint + new session"))
+
+    def test_context_hint_threshold_from_config(self):
+        self.schedule()
+        self.write("config.json", {"plan": "pro", "context_hint_tokens": 50_000})
+        self.assertIn("ctx 60k", self.ctx(60_000))
+        for off in (0, False):
+            self.write("config.json", {"context_hint_tokens": off})
+            self.assertNotIn("ctx", self.ctx(900_000))
+        self.write("config.json", {"context_hint_tokens": "lots"})   # invalid: default
+        self.assertNotIn("ctx", self.ctx(149_000))
+        self.assertIn("ctx 151k", self.ctx(151_000))
+
+    def test_context_hint_without_schedule(self):
+        self.assertEqual(self.ctx(200_000),
+                         "navitok: no schedule yet · session 62% · ctx 200k · checkpoint + new session")
+
     def test_bar(self):
         self.assertEqual(sl.bar(0), "░░░░░")
         self.assertEqual(sl.bar(100), "▓▓▓▓▓")

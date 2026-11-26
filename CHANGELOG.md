@@ -3,6 +3,25 @@
 All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses [Semantic Versioning](https://semver.org/).
 
+## [1.0.1] - 2026-11-26
+
+Windows setup, a context-size hint, and repository cleanup. Images and the icon come later.
+
+### Added
+
+- **Statusline context hint.** When the session's context reaches 150k tokens, the segment adds `ctx 160k · checkpoint + new session`. Every message re-reads the whole context. In the v1.0a and v1.0b dogfood sprints, one long session cost 6–8M cache-read tokens per sprint. `/navitok:checkpoint` writes the handoff, and a fresh session continues from it. The source is the documented `context_window.total_input_tokens`, with `current_usage` as a fallback. A missing field shows nothing. The threshold is `context_hint_tokens` in `.navitok/config.json` (`0` or `false` turns it off). 5 new tests.
+- **`/navitok:setup` checks for a working POSIX shell** (new required row `shell` in `doctor.py check`). Claude Code runs hooks and the statusline through `sh` on macOS and Linux, and through Git Bash on Windows, with PowerShell as the fallback, where they fail. On Windows it checks `CLAUDE_CODE_GIT_BASH_PATH`, then `sh`/`bash` on `PATH` (not WSL's `System32ash.exe`), then the `bash.exe` next to `git.exe`, and runs `sh -c 'echo ok'`. When it is missing, it links Git for Windows and shows `winget install --id Git.Git -e`. 6 new tests.
+- README Install: Windows needs Git for Windows (Git Bash).
+
+### Fixed
+
+- `plan.py` writes JSON with LF line endings on Windows too. The doctor wizard writes through the same function. 1 new test.
+
+### Changed
+
+- `docs/dogfood/ledger.jsonl.lock` is no longer tracked; `*.lock` is gitignored.
+- A personal home path in `CHANGELOG.md` and `docs/HANDOFF.md` is replaced by a generic example. The non-ASCII test fixtures are unchanged.
+
 ## [1.0.0] - 2026-11-26
 
 First release: ready to share. Install with `/plugin marketplace add RetraysSs/navitok` and `/plugin install navitok@navitok`, then run `/navitok:setup`.
@@ -112,7 +131,7 @@ First release: ready to share. Install with `/plugin marketplace add RetraysSs/n
   - **Sizing:** fits 80×24, truncates cleanly in smaller terminals, follows resizes.
   - **Resilience:** data errors are shown on the panel and appended to `--log`, never fatal. `--duration S` stops after S seconds (soak tests), and `--interval S` sets the refresh (min 1, default 5).
 - `SKILL.md`, `README.md`: entry point and alias suggestion.
-- Tests for the 80×24 frame, truncation, tiny terminals, live vs. old snapshots, missing and broken data, the threshold bar, the ANSI loop (escapes, cursor restore, plain mode without VT, `q`, duration), error logging, zone names and local time, number format, session labels, the CLI (`--once` UTF-8, live mode with log), and a **regression test for non-ASCII and 8.3 short paths** (`C:\Users\ÜNSAL` vs `C:\Users\NSAL~1`) across the panel, statusline and hooks.
+- Tests for the 80×24 frame, truncation, tiny terminals, live vs. old snapshots, missing and broken data, the threshold bar, the ANSI loop (escapes, cursor restore, plain mode without VT, `q`, duration), error logging, zone names and local time, number format, session labels, the CLI (`--once` UTF-8, live mode with log), and a **regression test for non-ASCII and 8.3 short paths** (e.g. `C:\Users\ÜSER` vs `C:\Users\SER~1`) across the panel, statusline and hooks.
 
 ### Changed
 

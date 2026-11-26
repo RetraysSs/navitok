@@ -4,7 +4,7 @@
 
 navitok is a Claude Code plugin that plans a project into session-sized releases. Each release is sized to fit your plan's 5-hour session and weekly usage limits. navitok keeps the schedule current as your real usage changes, including usage outside Claude Code, and it calibrates its estimates from your own history, so a prompt is never cut off halfway.
 
-**Status: 1.0.0.** See [CHANGELOG.md](CHANGELOG.md) for what changed and [ROADMAP.md](ROADMAP.md) for what comes next.
+**Status: 1.0.1.** See [CHANGELOG.md](CHANGELOG.md) for what changed and [ROADMAP.md](ROADMAP.md) for what comes next.
 
 > **Disclaimer.** Estimates rely on personal calibration and are not guarantees. Anthropic's limits may change. Usage from other devices is detected only through account-wide numbers.
 
@@ -25,6 +25,8 @@ navitok is a Claude Code plugin that plans a project into session-sized releases
 ```
 
 Needs Python 3.10+ (standard library only). On Windows, `python` works where `python3` is the Microsoft Store alias.
+
+**Windows: needs Git for Windows (Git Bash).** Claude Code runs plugin hooks and the statusline as shell commands: `sh` on macOS and Linux, Git Bash on Windows. Without Git Bash it falls back to PowerShell, where navitok's hooks and statusline fail. Install Git for Windows from https://git-scm.com/downloads/win (or `winget install --id Git.Git -e`) and restart Claude Code. If Git Bash is installed where Claude Code doesn't find it, set `CLAUDE_CODE_GIT_BASH_PATH` to its `bash.exe`. `/navitok:setup` checks for a working shell and shows these steps when it is missing.
 
 Development version: `git clone https://github.com/RetraysSs/navitok`, then `claude --plugin-dir ./navitok`, and `/reload-plugins` after changes.
 
@@ -64,7 +66,7 @@ Full sample roadmaps for Pro (strict) and Max 5x (flex) are in [`examples/`](exa
 
 | Command | What it does |
 |---|---|
-| `/navitok:setup` | Doctor table (Python, project state, usage source, statusline, trimming, Superpowers, Graphify) and first-run wizard. Installs and changes nothing without your approval. |
+| `/navitok:setup` | Doctor table (Python, POSIX shell / Git Bash, project state, usage source, statusline, trimming, Superpowers, Graphify) and first-run wizard. Installs and changes nothing without your approval. |
 | `/navitok:plan [description]` | Plans the project into releases that each fit one session. |
 | `/navitok:status` | Session left, threshold, confidence, external usage this week, next release. |
 | `/navitok:checkpoint [note]` | Stops at a clean point, commits and writes a handoff. |
@@ -82,6 +84,8 @@ v0.1 ▓▓░░░ 38% · fits · week 31% · cold start
 ```
 
 Once navitok knows how much of the week came from outside Claude Code, the segment shows it (`week 31% (ext 8%)`). Once calibration has a confidence score, `conf 40` replaces `cold start`. If the next task would no longer fit, `fits` becomes `no fit: checkpoint`.
+
+When the session's context reaches 150k tokens, the segment adds `ctx 160k · checkpoint + new session`. Every message re-reads the whole context, so a long session gets expensive. `/navitok:checkpoint` writes the handoff, and a fresh session continues from it. Set `"context_hint_tokens"` in `.navitok/config.json` to change the threshold (`0` turns it off).
 
 
 The statusline segment shows the current release, session used, whether the next task fits, weekly use with the external share, and confidence. It also saves the fresh account-wide reading that the fit check prefers. If you already have a statusline, navitok wraps it, so your line stays first, and it never replaces it. `/navitok:setup` shows the exact settings change before anything is written.

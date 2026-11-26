@@ -191,5 +191,17 @@ class PluginFiles(unittest.TestCase):
             self.assertIn(f"`{t}`", skill)
 
 
+class WriteJson(unittest.TestCase):
+    def test_lf_line_endings_on_every_platform(self):
+        with tempfile.TemporaryDirectory() as d:
+            path = Path(d) / "dir Ü" / "config.json"
+            planmod._write_json(path, {"a": [1, 2], "name": "Ünïcode"})
+            raw = path.read_bytes()
+            self.assertNotIn(b"\r\n", raw)
+            self.assertTrue(raw.endswith(b"}\n"))
+            self.assertEqual(json.loads(raw.decode("utf-8"))["name"], "Ünïcode")
+            self.assertFalse(path.with_suffix(".json.tmp").exists())
+
+
 if __name__ == "__main__":
     unittest.main()

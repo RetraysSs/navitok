@@ -126,6 +126,14 @@ Sources: https://code.claude.com/docs/en/statusline and https://code.claude.com/
 - **Observed live (2026-11-25, Pro, Windows, after the maintainer approved `setup --apply`):** within seconds the statusline wrote `.navitok/usage_snapshot.json` with `five_hour.used_percentage: 20`, `seven_day.used_percentage: 19` and epoch `resets_at`. That matches `/usage` (20% / 19%) exactly. **The live values were whole numbers**, not decimals like the docs example (`23.5`). So decimal precision is not guaranteed, and `usage_read` labels the precision `decimal` only nominally.
 - **Observed locally (v0.8 acceptance, Git Bash, Windows, synthetic stdin):** the generated command ran through `sh -c` in 123–148 ms with a non-ASCII path. The snapshot it wrote was picked up by the `UserPromptSubmit` hook as `source: statusline`, `stale: false`. Live observation: see the point above.
 
+### Statusline `context_window` for the 1.0.1 context hint (checked 2026-11-26)
+
+Read through a web-fetch subagent from https://code.claude.com/docs/en/statusline.
+- `context_window.total_input_tokens`: tokens in the context from the most recent response, the sum of `input_tokens`, `cache_creation_input_tokens` and `cache_read_input_tokens`. `0` before the first response. navitok uses it as "tokens every next message re-reads".
+- `context_window.current_usage` (object or `null`): per-category counts from the last call. `null` before the first response, and `null` or zeros after `/compact`. navitok sums its three input fields only when `total_input_tokens` is missing.
+- Also present, not used: `total_output_tokens`, `context_window_size`, `used_percentage` / `remaining_percentage` (may be `null` early), top-level `exceeds_200k_tokens` (fixed 200k threshold).
+- navitok's threshold is its own setting: `context_hint_tokens` in `.navitok/config.json` (default 150000; `0` or `false` turns the hint off). It is a token count, not a share of the window, because the cost comes from tokens re-read per message. A missing or malformed field shows no hint.
+
 ## Costs / `/usage` (checked 2026-11-24)
 
 Source: https://code.claude.com/docs/en/costs. Status: **documented**.
@@ -250,6 +258,13 @@ Mean of 20 runs of `sh hooks/run.sh trim < payload` (10 for the last row), timed
 - **Statusline scope:** the statusline docs name user (`~/.claude/settings.json`) and project settings for `statusLine`. The settings docs give the precedence "managed settings, command line, project local, shared project, user" (highest first) and do not say whether `.claude/settings.local.json` may hold `statusLine`. The doctor reads, in that order, `.claude/settings.local.json`, `.claude/settings.json` and `~/.claude/settings.json`, and reports the first `statusLine.command` it finds. It ignores managed settings and the command line, and it never writes. Neither page says whether a plugin can ship a statusline, so navitok still proposes the `statusline.py setup` change to the user's settings.
 - **Install commands shown (never run by navitok):** Superpowers, from its README (7.0.2): `/plugin install superpowers@claude-plugins-official`, or `/plugin marketplace add obra/superpowers-marketplace` then `/plugin install superpowers@superpowers-marketplace`. Graphify, from the graphifyy 0.9.120 package README: `uv tool install graphifyy` (or `pipx install graphifyy`); the graph is then built with `graphify update .` (AST only, as used in v0.11).
 - **Detection used:** Superpowers through `superpowers.detect()` (undocumented plugin registry, UNSTABLE, see above), Graphify through `graphify-out/graph.json` plus `graphify` on `PATH`, usage through `usage_read.account_usage()` (statusline snapshot first, then the UNSTABLE usage cache).
+
+### Windows shell for hooks and the statusline (checked 2026-11-26, for 1.0.1)
+
+- Hooks docs, verbatim: "**Shell form** runs when `args` is absent. The `command` string is passed to a shell: `sh -c` on macOS and Linux, Git Bash on Windows, or PowerShell when Git Bash isn't installed. Set the `shell` field to choose explicitly." The `shell` field accepts `"bash"` or `"powershell"`.
+- Hooks docs (from the subagent's summary of a part it did not read verbatim): `CLAUDE_CODE_GIT_BASH_PATH` sets the Git Bash location when Claude Code doesn't find it.
+- Statusline docs (summary, not verbatim): status line commands run through Git Bash when it is installed, otherwise PowerShell.
+- navitok's `run.sh` hooks and statusline command are POSIX shell, so `doctor.py check` has a required `shell` row. On Windows it looks at `CLAUDE_CODE_GIT_BASH_PATH`, then `sh`/`bash` on `PATH` (never `System32ash.exe`, which is WSL), then `<Git>inash.exe` next to `git.exe`, and runs `sh -c 'echo ok'`. This is the only command the doctor runs. Missing: it links Git for Windows (https://git-scm.com/downloads/win, `winget install --id Git.Git -e`).
 
 ## Output trimming hook (checked 2026-11-26, https://code.claude.com/docs/en/hooks)
 
