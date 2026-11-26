@@ -1,0 +1,170 @@
+{
+  "schema": 1,
+  "project": "todo-cli",
+  "plan": "max5x",
+  "mode": "flex",
+  "releases": [
+    {
+      "id": "v0.1",
+      "title": "Skeleton, storage and core commands",
+      "tasks": [
+        {
+          "id": "v0.1-t1",
+          "title": "Project skeleton and CLI entry point",
+          "type": "scaffold",
+          "size": "S",
+          "files": 3,
+          "est_pct": [
+            0.06,
+            0.3
+          ],
+          "status": "todo",
+          "suggested_model": null,
+          "suggested_effort": null
+        },
+        {
+          "id": "v0.1-t2",
+          "title": "JSON file storage for tasks",
+          "type": "feature",
+          "size": "S",
+          "files": 2,
+          "est_pct": [
+            0.2,
+            0.6
+          ],
+          "status": "todo",
+          "suggested_model": null,
+          "suggested_effort": null
+        },
+        {
+          "id": "v0.1-t3",
+          "title": "add, list and done commands",
+          "type": "feature",
+          "size": "M",
+          "files": 3,
+          "est_pct": [
+            0.5,
+            1.5
+          ],
+          "status": "todo",
+          "suggested_model": null,
+          "suggested_effort": null
+        },
+        {
+          "id": "v0.1-t4",
+          "title": "Storage and command tests",
+          "type": "test",
+          "size": "M",
+          "files": 3,
+          "est_pct": [
+            0.25,
+            1.0
+          ],
+          "status": "todo",
+          "suggested_model": null,
+          "suggested_effort": null
+        },
+        {
+          "id": "v0.1-t5",
+          "title": "Wrap-up: changelog and commit",
+          "type": "wrapup",
+          "size": "S",
+          "files": 2,
+          "est_pct": [
+            0.1,
+            0.3
+          ],
+          "status": "todo",
+          "suggested_model": null,
+          "suggested_effort": null
+        }
+      ],
+      "est_pct": [
+        1.11,
+        3.7
+      ],
+      "confidence": 30
+    },
+    {
+      "id": "v0.2",
+      "title": "Dates, filters and release",
+      "tasks": [
+        {
+          "id": "v0.2-t1",
+          "title": "Due dates and overdue view",
+          "type": "feature",
+          "size": "M",
+          "files": 3,
+          "est_pct": [
+            0.5,
+            1.5
+          ],
+          "status": "todo",
+          "suggested_model": null,
+          "suggested_effort": null
+        },
+        {
+          "id": "v0.2-t2",
+          "title": "Filter by tag and status",
+          "type": "feature",
+          "size": "S",
+          "files": 2,
+          "est_pct": [
+            0.2,
+            0.6
+          ],
+          "status": "todo",
+          "suggested_model": null,
+          "suggested_effort": null
+        },
+        {
+          "id": "v0.2-t3",
+          "title": "Tests for dates and filters",
+          "type": "test",
+          "size": "S",
+          "files": 2,
+          "est_pct": [
+            0.1,
+            0.4
+          ],
+          "status": "todo",
+          "suggested_model": null,
+          "suggested_effort": null
+        },
+        {
+          "id": "v0.2-t4",
+          "title": "Packaging config and README",
+          "type": "docs",
+          "size": "S",
+          "files": 3,
+          "est_pct": [
+            0.06,
+            0.2
+          ],
+          "status": "todo",
+          "suggested_model": null,
+          "suggested_effort": null
+        },
+        {
+          "id": "v0.2-t5",
+          "title": "Wrap-up: release commit",
+          "type": "wrapup",
+          "size": "S",
+          "files": 2,
+          "est_pct": [
+            0.1,
+            0.3
+          ],
+          "status": "todo",
+          "suggested_model": null,
+          "suggested_effort": null
+        }
+      ],
+      "est_pct": [
+        0.96,
+        3.0
+      ],
+      "confidence": 30
+    }
+  ]
+}

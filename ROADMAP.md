@@ -51,9 +51,9 @@
 ```bash
 mkdir navitok && cd navitok
 git init
-# Put ROADMAP.md and CLAUDE.md in this folder (CLAUDE.md stays local: it is gitignored, not committed)
+# Put ROADMAP.md in this folder
 git add ROADMAP.md
-git commit -m "docs: initial roadmap and project rules"
+git commit -m "docs: initial roadmap"
 
 # Publish (now or at v1.0):
 gh repo create navitok --public --source=. --push
@@ -527,6 +527,10 @@ If a sprint spans more than one session, record each session separately.
 **Accept:** a new user can read the README, install in 5 minutes and run `/navitok:plan`.
 **Commit:** `release: v1.0.0`
 
+**Split (2026-11-26):** the sprint is `M` and partly outward-facing, so it has two parts.
+- **v1.0a:** a fast off path for the trim hook (the maintainer's first task), the README items, ROADMAP §9 without `CLAUDE.md`, and `examples/`.
+- **v1.0b** (each step needs the maintainer's approval): push; the marketplace install test; statusline and panel screenshots or a GIF; version `1.0.0`, the tag and the GitHub release notes.
+
 ---
 
 ## 8. After v1.0
@@ -568,12 +572,12 @@ If a sprint spans more than one session, record each session separately.
 
 ## 9. Driving the build with Claude Code
 
-1. Put this file and `CLAUDE.md` at the repo root (§2.2). `CLAUDE.md` stays local and is not committed; Claude Code reads it from the working tree.
+1. Put this file at the repo root (§2.2). Everything Claude needs is in the repository: the sprint rules (§5), the measurement protocol (§6.1) and, from the second sprint on, `docs/HANDOFF.md`. Contributor rules are in the README's "Contributing" section. A maintainer may keep personal instructions in a local `CLAUDE.md`; it is gitignored, and nothing in this plan depends on it.
 2. Run `claude` in the repo folder.
 3. First message:
 
 ```text
-Read ROADMAP.md and CLAUDE.md. Implement sprint v0.0 only.
+Read ROADMAP.md (sprint rules §5, measurement protocol §6.1). Implement sprint v0.0 only.
 Start with the dogfood measurement protocol (ROADMAP §6.1): ask me for my /usage
 numbers and write your estimate before any work. Report briefly after each task.
 At the end: run tests, update CHANGELOG, write the dogfood record, commit,
