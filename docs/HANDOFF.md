@@ -1,6 +1,18 @@
 # Handoff
 
-## Last sprint: v0.13 (`/navitok:setup`, doctor, wizard), done
+## Last sprint: v1.0a (fast trim off path, README, examples), done
+
+- **Split:** v1.0 is `M` and partly outward-facing, so it was split into v1.0a (this) and v1.0b (release steps). Noted in ROADMAP v1.0.
+- **Commits:** `70be5b9 perf(hooks): fast off path for the trim hook`, `0256052 docs: v1.0 README, examples and ROADMAP without CLAUDE.md`. Tests 278/278 (3 new in `tests/test_run_sh_fast.py`).
+- **Trim hook (the maintainer's first task):** kept registered. `run.sh trim` decides "off" with shell builtins only (no fork, no Python). Every other config layout falls through to Python, which checks the config before its heavier imports. Measured: **231 ms → 19 ms** per Bash call with trimming off (Claude Code's own timing: 60 ms). On: ~236 ms, unchanged. Table and method in `docs/data-sources.md`.
+- **Behaviour change to review:** the shell fast path reads `$CLAUDE_PROJECT_DIR/.navitok/config.json` and `./.navitok/config.json`, not the payload `cwd`. Verified live that `CLAUDE_PROJECT_DIR` is set for plugin hooks. A `.navitok/` that exists only in the session's current folder is no longer seen; trimming was only meant for the project root anyway. The hook tests now set `CLAUDE_PROJECT_DIR`, as Claude Code does.
+- **ROADMAP §2.2/§9:** no longer tell anyone to read `CLAUDE.md`; they point to §5, §6.1 and the README. The contributor rules from `CLAUDE.md` are in README "Contributing". The local `CLAUDE.md` is unchanged.
+- **README:** rewritten for 1.0. "Built with navitok" uses the real REPORT.md numbers: 15 sprints; 2 of 9 inside the range for v0.0–v0.8, 6 of 6 for v0.9–v0.13; mean error 6.1 then 2.5 points. The install commands are not tested yet (v1.0b). There are no screenshots yet; the statusline example is a text line.
+- **examples/:** `pro-strict/` and `max5x-flex/` (same todo-cli project) were generated with `plan.py config` + `price`. Their estimates are real script output.
+- **Small finding:** `plan.py`'s `_write_json` (and the doctor wizard through it) writes CRLF on Windows (`write_text` without `newline`). `.gitattributes` normalises it in the repo. It's harmless for JSON, but could be fixed with `newline="\n"`.
+- **Local cleanup:** the headless check session was removed from `.navitok/history.jsonl`, and its `config.json`, `logs/` and `calibration.json` were deleted.
+
+## Previous sprint: v0.13 (`/navitok:setup`, doctor, wizard), done
 
 - **Commit:** `8769bd5 feat(setup): doctor and first-run wizard (v0.13.0)`. Tests 275/275 (9 new in `tests/test_doctor.py`).
 - **What it does:** `doctor.py check` is a read-only ✅/❌ table covering Python (the only required item), `.navitok/` state, usage source and freshness, statusline (navitok, custom-not-wrapped or none; project-local > project > user), trimming, Superpowers, and Graphify (CLI + graph). Each gap has why it helps and the command to fix it. `doctor.py wizard` writes plan, mode, statusline and trimming to `config.json` only and explains both trimming paths. The statusline change is only proposed, via `statusline.py setup` without `--apply`. `commands/setup.md` points to the new **Setup** section in `SKILL.md`, which says to run nothing without explicit approval of that command.
@@ -64,9 +76,9 @@
 - CLI output must be UTF-8 (`sys.stdout.reconfigure`), or the Bash tool and tests get garbled text on Windows (v0.4).
 - Because the usage cache is frozen, the `UserPromptSubmit` hook in a real session will usually see a **stale** reading (`usage_stale: true`) until v0.8's statusline snapshot exists. `schedule.py recompute --session-pct N --weekly-pct N` feeds a manual `/usage` reading (v0.5).
 
-## Next sprint: v1.0 (Release, `M`): not started, needs approval
+## Next sprint: v1.0b (release steps): not started, each step needs approval
 
-See ROADMAP §7 v1.0. An `M` sprint may need a split; propose one at the start. Still open: the v0.2 0-token start snapshot, the manual-reading issue when no statusline is configured, a live curses run on Linux or macOS, and the decision on Graphify's local `CLAUDE.md` section and `.claude/settings.json`.
+See ROADMAP §7 v1.0 "Split". Push to `origin`; test the marketplace install (`/plugin marketplace add RetraysSs/navitok`, `/plugin install navitok@navitok`, `/navitok:setup`) from GitHub; statusline and panel screenshots or a GIF (the maintainer captures them); version `1.0.0` in both manifests, move CHANGELOG `[Unreleased]` to `[1.0.0]`, tag `v1.0.0`, GitHub release notes. Commit per ROADMAP: `release: v1.0.0`. Still open: the v0.2 0-token start snapshot, the manual-reading issue when no statusline is configured, a live curses run on Linux or macOS, and the decision on Graphify's local `CLAUDE.md` section and `.claude/settings.json`.
 
 ## Notes
 
