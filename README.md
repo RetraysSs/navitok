@@ -52,6 +52,8 @@ Sessions with and without a graph are calibrated separately. navitok works with 
 
 Long test and build output can fill the context quickly. With `"trim_output": true` in `.navitok/config.json`, a `PostToolUse` hook gives Claude a trimmed copy of long Bash output (errors, tracebacks and the last lines kept, repeats collapsed) and saves the full output to `.navitok/logs/`. It is off by default, never changes the command, and works alongside other hooks such as Graphify's.
 
+The hook only sees commands that succeed: Claude Code does not run `PostToolUse` for a command that exits non-zero. For tests and builds, navitok's skill therefore tells Claude to use the wrapper `python scripts/run.py -- CMD ...`. It trims the same way, saves the full log and exits with the command's real exit code.
+
 ## Development
 
 Scripts use the Python 3.10+ standard library only.

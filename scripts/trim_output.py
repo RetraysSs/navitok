@@ -15,6 +15,11 @@ hook saves the full output to `.navitok/logs/` and replaces what Claude sees
 PostToolUse never changes the command itself, so it cannot conflict with
 another PreToolUse hook that rewrites or inspects it (e.g. Graphify's).
 
+Limit (verified live, v0.12.1): Claude Code fires PostToolUse only for calls
+that succeed. A Bash command that exits non-zero fires PostToolUseFailure,
+which cannot replace the output, so failing output is never trimmed here.
+For tests and builds use `scripts/run.py`, which runs the command itself.
+
 Off by default. Silent unless it trimmed something. Never blocks: any error
 leaves the output untouched. Stdlib only, local files only.
 
@@ -128,20 +133,41 @@ def trim_text(text, opt):
 
 # --- hook --------------------------------------------------------------------------
 
-def _save_log(project_dir, payload, response, opt, now=None):
+def save_log(project_dir, cmd, stdout, stderr, opt, tag="bash", now=None):
+    """Write the full output to .navitok/logs/ and rotate old logs. Returns the path.
+    Shared by the hook and scripts/run.py."""
     now = now or datetime.now(timezone.utc)
     logs = Path(project_dir) / ".navitok" / LOG_DIR
     logs.mkdir(parents=True, exist_ok=True)
-    tid = re.sub(r"[^A-Za-z0-9_-]", "_", str(payload.get("tool_use_id") or "bash"))[:40]
+    tid = re.sub(r"[^A-Za-z0-9_-]", "_", str(tag or "bash"))[:40]
     path = logs / f"{now.strftime('%Y%m%dT%H%M%SZ')}-{tid}.log"
-    cmd = (payload.get("tool_input") or {}).get("command", "")
-    body = [f"$ {cmd}", "", "--- stdout ---", response.get("stdout") or "",
-            "--- stderr ---", response.get("stderr") or ""]
+    body = [f"$ {cmd}", "", "--- stdout ---", stdout or "", "--- stderr ---", stderr or ""]
     path.write_text("\n".join(body), encoding="utf-8")
     old = sorted(logs.glob("*.log"))
     for p in old[:max(0, len(old) - opt["keep_logs"])]:
         p.unlink(missing_ok=True)
     return path
+
+
+def shown_path(log, project_dir):
+    """The log path as shown in the marker: relative to the project when possible."""
+    try:
+        return log.resolve().relative_to(Path(project_dir).resolve()).as_posix()
+    except ValueError:
+        return str(log)
+
+
+def marked(key, res, opt, shown):
+    """One trimmed stream with its marker line on top."""
+    text, before, after = res
+    return (f"[navitok: {key} trimmed {before} -> {after} lines; errors and the last "
+            f"{opt['tail']} lines kept; full output: {shown}]\n{text}")
+
+
+def _save_log(project_dir, payload, response, opt, now=None):
+    cmd = (payload.get("tool_input") or {}).get("command", "")
+    return save_log(project_dir, cmd, response.get("stdout"), response.get("stderr"), opt,
+                    payload.get("tool_use_id") or "bash", now)
 
 
 def handle(payload, now=None):
@@ -159,16 +185,11 @@ def handle(payload, now=None):
     if not any(trimmed.values()):
         return None
     log = _save_log(project, payload, response, opt, now)
-    try:
-        shown = log.resolve().relative_to(Path(project).resolve()).as_posix()
-    except ValueError:
-        shown = str(log)
+    shown = shown_path(log, project)
     new = dict(response)
     for key, res in trimmed.items():
         if res:
-            text, before, after = res
-            new[key] = (f"[navitok: {key} trimmed {before} -> {after} lines; errors and the last "
-                        f"{opt['tail']} lines kept; full output: {shown}]\n{text}")
+            new[key] = marked(key, res, opt, shown)
     return {"hookSpecificOutput": {"hookEventName": "PostToolUse", "updatedToolOutput": new}}
 
 

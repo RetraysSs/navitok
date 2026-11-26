@@ -489,6 +489,13 @@ If a sprint spans more than one session, record each session separately.
 **Accept:** a long test run is trimmed without losing the error message; Graphify's hook still works.
 **Commit:** `feat(hooks): optional output trimming (v0.12.0)`
 
+**v0.12.1 (patch, found in the live check):** `PostToolUse` fires only for calls that succeed. A Bash command that exits non-zero fires `PostToolUseFailure`, which cannot replace output, so the hook never trims a failing test run. Two paths now:
+- the `PostToolUse` hook (unchanged) trims long output of commands that **succeed**;
+- `scripts/run.py -- CMD ...` runs a command, trims its output with the same trimmer, saves the full log and exits with the real exit code. `SKILL.md`: when `trim_output` is on, run tests and builds through it. No hook, so no race with Graphify and nothing for auto mode to deny.
+
+**Accept (live):** a failing 300-line command through `run.py` in `claude -p --plugin-dir .` reaches Claude trimmed, with the error lines and the real exit code.
+**Commit:** `fix(trim): run.py wrapper for failing commands (v0.12.1)`
+
 ---
 
 ### v0.13 — `/navitok:setup` (doctor) `S`

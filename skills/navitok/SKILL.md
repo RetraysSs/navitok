@@ -77,6 +77,14 @@ Without Graphify nothing changes.
 
 If `.navitok/config.json` has `"trim_output": true` (or `{"enabled": true, "max_lines": 120, "head": 10, "tail": 40, "context": 3, "keep_logs": 20}`), long Bash output reaches you trimmed: the first lines, every error-looking line with context, whole tracebacks and the last lines, with repeats collapsed. The first line names the full log in `.navitok/logs/`. When a trimmed result is not enough, read that log (ideally only the part you need) instead of re-running the command. Never turn trimming on without the user's approval (`/navitok:setup` will offer it).
 
+The hook only trims commands that **succeed**: a command that exits non-zero reaches you untrimmed, because Claude Code fires `PostToolUseFailure` for it and that event cannot replace output. So **when `trim_output` is on, run tests and builds through the wrapper**:
+
+```
+python "${CLAUDE_PLUGIN_ROOT}/scripts/run.py" -- python -m unittest discover -s tests
+```
+
+(`python3` where that is the working interpreter.) Several arguments after `--` run without a shell; a single quoted argument runs in the shell (pipes, `&&`). The wrapper prints the same trimmed output with the same marker line, saves the full output to `.navitok/logs/`, and exits with the command's real exit code, so read success or failure from the exit code as usual. Use it only for commands whose output you read when they finish, not for interactive or long-running ones (it shows nothing until the command ends).
+
 ## Schedule and notices
 
 A `UserPromptSubmit` hook runs `schedule.py` before every prompt. It writes `.navitok/schedule.json` (script-owned: never edit it) and refreshes the Schedule section of `.navitok/ROADMAP.md`. It costs no tokens and is silent unless the fit status changes.
@@ -147,4 +155,4 @@ Give them the real path: `${CLAUDE_PLUGIN_ROOT}` expanded. Suggest an alias such
 
 ## Not available yet
 
-Graphify integration, output trimming and `/navitok:setup` arrive in later navitok releases. If the user asks for them, say so. Do not invent usage numbers.
+`/navitok:setup` arrives in a later navitok release. If the user asks for them, say so. Do not invent usage numbers.

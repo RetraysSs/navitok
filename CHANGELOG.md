@@ -3,6 +3,24 @@
 All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.12.1] - 2026-11-26
+
+### Fixed
+
+- **Output trimming missed failing commands.** Verified live: Claude Code fires `PostToolUse` only for calls that succeed. A Bash command that exits non-zero fires `PostToolUseFailure`, which cannot replace output, so the v0.12 hook never trimmed a failing test run (the case it was built for). The v0.12 acceptance had tested the script directly, not a live failing call.
+
+### Added
+
+- `scripts/run.py`: a command wrapper. `python scripts/run.py [--max-lines N] -- CMD [ARG ...]` runs the command (a single argument runs in the shell), trims stdout and stderr with the same trimmer as the hook, saves the full output to `.navitok/logs/`, and exits with the command's real exit code (127 if it cannot start). It trims whenever it is called and uses the `config.json` overrides when present. No hook is involved, so it cannot race Graphify's `PreToolUse` hook and there is no rewritten call for auto mode to deny.
+- `SKILL.md` rule: when `trim_output` is on, run tests and builds through `run.py`.
+- 9 tests in `tests/test_run.py`: a failing 300-line command trimmed with its exit code kept, exit codes 0/3 passed through, short output untouched with no log, shell form, a missing command (127), usage errors, `--max-lines` and config overrides, a non-ASCII project path.
+
+### Changed
+
+- The `PostToolUse` hook is kept for long output of commands that succeed. `updatedToolOutput` for Bash is now **verified live** (it was not in 0.12.0).
+- `trim_output.py`: log writing and the marker line are shared helpers (`save_log`, `shown_path`, `marked`), used by both paths. Output is unchanged.
+- Docs: both paths and the hook's limit in `docs/data-sources.md`, ROADMAP v0.12 and `SKILL.md`.
+
 ## [0.12.0] - 2026-11-26
 
 ### Added
