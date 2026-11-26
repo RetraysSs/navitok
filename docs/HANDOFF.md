@@ -1,31 +1,27 @@
 # Handoff
 
-## Last sprint: v0.9 (Terminal panel), done
+## Last sprint: v0.10 (Superpowers integration), done
 
-- **Commit:** `7e06d3e feat(ui): live terminal panel (v0.9.0)`. The ROADMAP v0.9 bullets were updated in the same commit, at the maintainer's request.
-- **Tests:** 204/204 pass (24 new, `tests/test_watch.py`). They include a regression test for non-ASCII and real 8.3 short paths (`C:\Users\ÜNSAL` ↔ `C:\Users\NSAL~1`) across the panel, the statusline and both hooks. It runs for real on this machine, not skipped.
-- **Acceptance:**
-  - A 60-minute background soak (`--plain --interval 2 --duration 3600 --log`) on the synthetic scratchpad project ran 3602 s with 1799 frames, 0 errors, empty stderr and no error frames. Five rounds of schedule/snapshot/calibration rewrites ran underneath it. It started once and its log was read once at the end, as the maintainer asked.
-  - The soak ran the code from **before** the formatting polish (Python had already loaded the module). The polish changed formatting and labels only, and the tests cover it.
-  - The maintainer looked at the live panel in a real terminal: "looks good".
-- **Polish from that review:** local time zone, `used · stop at · left` wording, one decimal everywhere, session labels by local date and time.
+- **Commit:** `74319d9 feat(integrations): superpowers plan ingestion (v0.10.0)`.
+- **Tests:** 226/226 pass (22 new: `tests/test_superpowers.py`, plus execution tests in `test_estimate.py` and `test_plan.py`).
+- **Acceptance:** a synthetic Superpowers-format plan (4 tasks, non-ASCII title) went through `ingest`, then `schedule.py recompute`. Result: a versioned roadmap (`v0.1`, 5 tasks with a wrapup, priced) and a schedule. The plan file's bytes and mtime were unchanged. This was also run by hand in the scratchpad.
+- **Model:** the first exchange ran on Sonnet 5.5, the rest on Opus 5.5 (the maintainer switched).
+- **Mistake caught:** the first commit was made with one failing test. A `&&` chain checked the exit code of `tail`, not of the tests. The failure was a stale version in `marketplace.json`; it was fixed and the commit amended (local, unpushed). **Lesson:** capture the test command's own exit code before committing.
 
-### What v0.9 built
+### What v0.10 built
 
-- `scripts/watch.py`: `gather()` (local files; a fresh snapshot ≤10 min wins) → `frame()` (≤80×24, truncates).
-- **Display**, in order of preference:
-  - `run_curses` where `curses` exists.
-  - Otherwise `run_ansi`: `enable_vt()` via ctypes `SetConsoleMode(ENABLE_VIRTUAL_TERMINAL_PROCESSING)`, and `Keys` (`msvcrt` on Windows, `termios`/`select` elsewhere; no tty → plain sleep).
-  - `--once` plain.
-- **Options:** `--plain`, `--interval`, `--duration`, `--log`.
-- SKILL.md "Terminal panel" section and a README section with the alias suggestion.
+- `scripts/integrations/superpowers.py`: `detect()` (plugin registry, unstable, with a fallback) → `parse_plan()` (Task headings, Files list, checkboxes, fences skipped) → `to_plan()` (greedy packing under the threshold, a wrapup per release, `source` pointers) → `ingest` CLI (prices and renders; refuses to overwrite `plan.json` without `--force`).
+- `estimate.EXECUTION` = `{inline: 1.0, subagent: 1.5}`, task field `execution`, validated by `plan.py`.
+- SKILL.md "Works with Superpowers plans", a README section, a data-sources entry.
 
 ### Decisions to review
 
-- **The curses path is untested live here:** Windows' Python has no `_curses`. It is a thin loop around the same `frame()`. It should get a manual run on Linux or macOS before v1.0.
-- **Zone names:** the abbreviation comes from the OS. On Windows that is the long name (`GMT Standard Time`), because the stdlib has no tz database and inventing initials would be wrong (UK time is GMT/BST, not "GST").
-- **"Estimate vs actual for recent tasks"** shows recent *sessions* (estimate midpoint vs local actual), because per-task actuals are not recorded.
-- **README status line** still says v0.0.1. The full README rewrite belongs to v1.0, so it was left alone.
+- **×1.5 for subagent-driven is a guess.** No dogfood data uses that workflow. It should be calibrated once a sprint is run subagent-driven (calibrate.py does not learn it per execution style yet).
+- **`--execution auto` assumes subagents**, because the Superpowers header recommends them and the user's handoff choice is not written to the file. That is safety-first (more expensive). On Pro + strict the script recommends inline.
+- **The script writes the `plan.json` draft.** That bends "Claude writes plan.json". The skill tells Claude to review the inferred types and sizes and re-price, so Claude still decides; the script only removes the transcription step. Reject this if you prefer the script to print the draft instead.
+- **Type and size inference is keyword- and step-count-based** (≤6 steps S, ≤12 M, else L). A standard 5-step TDD task is S.
+- Releases are numbered `v0.1…` per ingest, not merged into an existing navitok plan.
+- ROADMAP v0.10 checkboxes were left unticked, as in v0.9.
 
 ### Known issue (v0.5 schedule, found in v0.6, open only without a statusline)
 
@@ -43,9 +39,9 @@
 - CLI output must be UTF-8 (`sys.stdout.reconfigure`), or the Bash tool and tests get garbled text on Windows (v0.4).
 - Because the usage cache is frozen, the `UserPromptSubmit` hook in a real session will usually see a **stale** reading (`usage_stale: true`) until v0.8's statusline snapshot exists. `schedule.py recompute --session-pct N --weekly-pct N` feeds a manual `/usage` reading (v0.5).
 
-## Next sprint: v0.10 (Superpowers integration, `S`): not started, needs approval
+## Next sprint: v0.11 (Graphify integration, `S`): not started, needs approval
 
-See ROADMAP §7 v0.10. Integrate **only by detecting Superpowers and reading its output files**. Never copy its code, never write into its plan files (navitok's output goes under `.navitok/`), and say "works with", not "official". Check Superpowers' current plan-file format from its repository or docs first; do not write it from memory. Still open: the v0.2 0-token start snapshot, and the manual-reading issue when no statusline is configured.
+See ROADMAP §7 v0.11. Integrate **only by detecting Graphify and reading its output files**: no copied code, no writes into its files, "works with", not "official". Check Graphify's current output format from its repository or docs first, and install it only with the maintainer's approval (ROADMAP §2.4). Still open: the v0.2 0-token start snapshot, the manual-reading issue when no statusline is configured, and a live curses run on Linux or macOS.
 
 ## Notes
 
